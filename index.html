@@ -548,7 +548,10 @@
         sidebarOverlay.addEventListener('click', toggleSidebar);
 
         // --- Gemini AI Logic ---
-        const apiKey = ""; 
+        // WARNING: Hardcoding your API key here will expose it to anyone who views your website's source code!
+        // Only do this if your repository/website is strictly private.
+        const apiKey = "AIzaSyD_tsr9BjVCFhlDdd4TyJyj0qNJjPoTCbk"; // Paste your key between the quotes here to hardcode it.
+        
         let userApiKey = localStorage.getItem('gemini_api_key') || "";
         
         function openAIPanel() {
@@ -603,7 +606,7 @@
         async function handleAIAction(action) {
             if (!codeDisplay.textContent) return;
             
-            // Allow manual API key entry when hosted on GitHub pages
+            // Allow manual API key entry when hosted on GitHub pages (bypassed if apiKey is hardcoded)
             if (!apiKey && !userApiKey) {
                 const key = prompt("To use AI features on GitHub Pages, please enter your free Google Gemini API Key:\n(Get one from aistudio.google.com)");
                 if (key) {
