@@ -549,6 +549,7 @@
 
         // --- Gemini AI Logic ---
         const apiKey = ""; 
+        let userApiKey = localStorage.getItem('gemini_api_key') || "";
         
         function openAIPanel() {
             aiPanel.classList.remove('hidden');
@@ -563,7 +564,8 @@
         closeAiBtn.addEventListener('click', closeAIPanel);
 
         async function callGemini(prompt, systemInstruction) {
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            const currentKey = apiKey || userApiKey;
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${currentKey}`;
             const payload = {
                 contents: [{ parts: [{ text: prompt }] }],
                 systemInstruction: { parts: [{ text: systemInstruction }] }
@@ -579,12 +581,20 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)
                     });
-                    if (!response.ok) throw new Error(`API Error (${response.status})`);
+                    if (!response.ok) {
+                        if (response.status === 400 || response.status === 403) {
+                            localStorage.removeItem('gemini_api_key');
+                            userApiKey = "";
+                            throw new Error("Invalid or Missing API Key. Please click the button again to try a new key.");
+                        }
+                        throw new Error(`API Error (${response.status})`);
+                    }
                     const data = await response.json();
                     return data.candidates?.[0]?.content?.parts?.[0]?.text || "No response generated.";
                 } catch (error) {
+                    if (error.message.includes("API Key")) throw error; // Don't retry if auth fails
                     attempt++;
-                    if (attempt >= 5) throw new Error("Failed to connect to Gemini API after multiple retries.");
+                    if (attempt >= 5) throw new Error("Failed to connect to Gemini API after multiple retries. Check network or key.");
                     await new Promise(r => setTimeout(r, delays[attempt - 1]));
                 }
             }
@@ -592,6 +602,17 @@
 
         async function handleAIAction(action) {
             if (!codeDisplay.textContent) return;
+            
+            // Allow manual API key entry when hosted on GitHub pages
+            if (!apiKey && !userApiKey) {
+                const key = prompt("To use AI features on GitHub Pages, please enter your free Google Gemini API Key:\n(Get one from aistudio.google.com)");
+                if (key) {
+                    userApiKey = key.trim();
+                    localStorage.setItem('gemini_api_key', userApiKey);
+                } else {
+                    return; // User cancelled
+                }
+            }
             
             openAIPanel();
             aiContent.classList.add('hidden');
@@ -601,17 +622,17 @@
             const fileName = document.getElementById('file-header-name').textContent;
             const code = codeDisplay.textContent;
             
-            let prompt = "";
+            let promptText = "";
             let sys = "You are an expert developer assistant. Format your response in clean Markdown. Keep it concise but deeply informative.";
             
             if (action === 'explain') {
-                 prompt = `Explain the following code from the file '${fileName}' in a concise and easy to understand way. Highlight the main purpose, key functions, and any interesting logic:\n\n\`\`\`\n${code}\n\`\`\``;
+                 promptText = `Explain the following code from the file '${fileName}' in a concise and easy to understand way. Highlight the main purpose, key functions, and any interesting logic:\n\n\`\`\`\n${code}\n\`\`\``;
             } else if (action === 'improve') {
-                 prompt = `Review the following code from '${fileName}'. Identify any bugs, security issues, performance bottlenecks, and suggest specific improvements and best practices:\n\n\`\`\`\n${code}\n\`\`\``;
+                 promptText = `Review the following code from '${fileName}'. Identify any bugs, security issues, performance bottlenecks, and suggest specific improvements and best practices:\n\n\`\`\`\n${code}\n\`\`\``;
             }
             
             try {
-                const result = await callGemini(prompt, sys);
+                const result = await callGemini(promptText, sys);
                 aiContent.innerHTML = marked.parse(result);
             } catch (e) {
                 aiContent.innerHTML = `<div class="text-red-400 bg-red-900/20 p-4 rounded border border-red-800/50 flex items-start gap-2"><i data-lucide="alert-triangle" class="w-5 h-5 shrink-0 mt-0.5"></i> <span>${e.message}</span></div>`;
