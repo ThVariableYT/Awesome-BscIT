@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web-Programming-Practicals Visualizer</title>
+    
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Highlight.js for Syntax Highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f8fafc; }
+        code, pre { font-family: 'Fira Code', monospace; }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+        /* Tree Styles */
+        .tree-item { cursor: pointer; user-select: none; transition: background 0.2s; }
+        .tree-item:hover { background-color: #1e293b; }
+        .tree-item.active { background-color: #3b82f6; color: white; }
+        .folder-content { overflow: hidden; transition: max-height 0.3s ease-out; max-height: 2000px; }
+        .folder-content.collapsed { max-height: 0; }
+        
+        /* Loading Spinner */
+        .spinner { animation: spin 1s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        
+        /* Code Container */
+        .hljs { background: transparent !important; padding: 0 !important; }
+        #code-display { tab-size: 4; }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden">
+
+    <!-- Navbar -->
+    <header class="bg-slate-900 border-b border-slate-800 flex items-center justify-between px-6 py-4 shrink-0 shadow-lg z-10">
+        <div class="flex items-center gap-3">
+            <i data-lucide="book-open" class="text-blue-400 w-6 h-6"></i>
+            <h1 class="font-bold text-xl tracking-tight text-slate-100">Repo<span class="text-blue-500">Viz</span></h1>
+        </div>
+        <div class="flex items-center gap-2 flex-1 max-w-xl ml-8">
+            <div class="relative w-full">
+                <i data-lucide="github" class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400"></i>
+                <input type="text" id="repo-input" value="username/Web-Programming-Practicals" 
+                    class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block pl-10 p-2.5 transition-colors" 
+                    placeholder="owner/repository">
+            </div>
+            <button id="load-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg text-sm px-5 py-2.5 transition-colors focus:ring-4 focus:ring-blue-900 flex items-center gap-2">
+                <i data-lucide="search" class="w-4 h-4"></i> Load
+            </button>
+        </div>
+        <div class="hidden md:flex items-center gap-4 text-sm text-slate-400">
+            <span id="repo-stats"></span>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex overflow-hidden">
+        
+        <!-- Sidebar (File Tree) -->
+        <aside class="w-72 bg-slate-900/50 border-r border-slate-800 flex flex-col overflow-hidden shrink-0">
+            <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900">
+                <h2 class="font-semibold text-slate-300 flex items-center gap-2">
+                    <i data-lucide="folder-tree" class="w-4 h-4"></i> Explorer
+                </h2>
+            </div>
+            <div id="tree-container" class="flex-1 overflow-y-auto p-2 text-sm text-slate-300">
+                <div class="flex flex-col items-center justify-center h-full text-slate-500 gap-3">
+                    <i data-lucide="arrow-up" class="w-8 h-8 animate-bounce"></i>
+                    <p>Enter a repository and click Load</p>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Code Viewer -->
+        <section class="flex-1 bg-[#0d1117] relative flex flex-col min-w-0">
+            
+            <!-- File Header -->
+            <div id="file-header" class="h-12 border-b border-slate-800 flex items-center px-4 bg-slate-900/80 backdrop-blur shrink-0 hidden">
+                <div class="flex items-center gap-2 text-slate-300 text-sm font-medium">
+                    <i id="file-header-icon" data-lucide="file" class="w-4 h-4 text-slate-400"></i>
+                    <span id="file-header-name">filename.js</span>
+                </div>
+                <div class="ml-auto flex items-center gap-3">
+                    <span id="file-size" class="text-xs text-slate-500"></span>
+                    <button id="copy-btn" class="p-1.5 hover:bg-slate-700 rounded-md transition-colors text-slate-400 hover:text-white" title="Copy Code">
+                        <i data-lucide="copy" class="w-4 h-4"></i>
+                    </button>
+                    <a id="raw-link" href="#" target="_blank" class="p-1.5 hover:bg-slate-700 rounded-md transition-colors text-slate-400 hover:text-white" title="View Raw">
+                        <i data-lucide="external-link" class="w-4 h-4"></i>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Content Area -->
+            <div id="content-container" class="flex-1 overflow-auto relative">
+                
+                <!-- Initial State -->
+                <div id="empty-state" class="absolute inset-0 flex flex-col items-center justify-center text-slate-500">
+                    <i data-lucide="code-2" class="w-16 h-16 mb-4 text-slate-700"></i>
+                    <p class="text-lg font-medium text-slate-400">No file selected</p>
+                    <p class="text-sm mt-1">Select a file from the explorer to view its contents</p>
+                </div>
+
+                <!-- Loading State -->
+                <div id="loading-state" class="absolute inset-0 flex flex-col items-center justify-center bg-[#0d1117]/80 z-10 hidden">
+                    <i data-lucide="loader-2" class="w-8 h-8 text-blue-500 spinner mb-4"></i>
+                    <p class="text-slate-300" id="loading-text">Loading...</p>
+                </div>
+
+                <!-- Code Block -->
+                <pre id="code-wrapper" class="hidden m-0 p-6 min-h-full"><code id="code-display" class="text-sm"></code></pre>
+                
+                <!-- Image Viewer -->
+                <div id="image-wrapper" class="hidden h-full flex items-center justify-center p-8">
+                    <img id="image-display" src="" alt="File preview" class="max-w-full max-h-full rounded shadow-lg">
+                </div>
+
+            </div>
+        </section>
+    </main>
+
+    <!-- Error Toast -->
+    <div id="error-toast" class="fixed bottom-6 right-6 bg-red-900/90 border border-red-700 text-white px-6 py-4 rounded-lg shadow-2xl transform transition-transform translate-y-24 opacity-0 flex items-center gap-3 z-50">
+        <i data-lucide="alert-circle" class="w-5 h-5 text-red-400"></i>
+        <span id="error-message" class="text-sm font-medium"></span>
+    </div>
+
+    <script>
+        // Initialize Icons
+        lucide.createIcons();
+
+        // DOM Elements
+        const repoInput = document.getElementById('repo-input');
+        const loadBtn = document.getElementById('load-btn');
+        const treeContainer = document.getElementById('tree-container');
+        const emptyState = document.getElementById('empty-state');
+        const loadingState = document.getElementById('loading-state');
+        const loadingText = document.getElementById('loading-text');
+        const codeWrapper = document.getElementById('code-wrapper');
+        const codeDisplay = document.getElementById('code-display');
+        const imageWrapper = document.getElementById('image-wrapper');
+        const imageDisplay = document.getElementById('image-display');
+        const fileHeader = document.getElementById('file-header');
+        const fileHeaderName = document.getElementById('file-header-name');
+        const fileSize = document.getElementById('file-size');
+        const copyBtn = document.getElementById('copy-btn');
+        const rawLink = document.getElementById('raw-link');
+        const repoStats = document.getElementById('repo-stats');
+
+        // State
+        let currentRepo = '';
+        let defaultBranch = 'main';
+        let activeFileElement = null;
+
+        // File Icons Mapping
+        const iconMap = {
+            'html': 'file-code-2', 'js': 'file-json', 'jsx': 'file-json-2', 'ts': 'file-type-2', 'tsx': 'file-type-2',
+            'css': 'file-code', 'json': 'file-json', 'md': 'file-text', 'py': 'file-code-2', 'java': 'file-code-2',
+            'png': 'image', 'jpg': 'image', 'jpeg': 'image', 'gif': 'image', 'svg': 'image', 'ico': 'image',
+            'pdf': 'file-text', 'zip': 'file-archive', 'gitignore': 'file-cog'
+        };
+        const imageExts = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'ico'];
+
+        // Helpers
+        const showError = (msg) => {
+            const toast = document.getElementById('error-toast');
+            document.getElementById('error-message').textContent = msg;
+            toast.style.transform = 'translateY(0)';
+            toast.style.opacity = '1';
+            setTimeout(() => {
+                toast.style.transform = 'translateY(24px)';
+                toast.style.opacity = '0';
+            }, 5000);
+        };
+
+        const formatBytes = (bytes, decimals = 2) => {
+            if (!+bytes) return '0 Bytes';
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+        };
+
+        const getIconForFile = (filename) => {
+            const ext = filename.split('.').pop().toLowerCase();
+            return iconMap[ext] || 'file';
+        };
+
+        // GitHub API Fetcher
+        async function fetchRepo() {
+            const repoPath = repoInput.value.trim().replace(/^https?:\/\/github\.com\//, '');
+            if (!repoPath || !repoPath.includes('/')) {
+                showError("Please enter a valid format: username/repository");
+                return;
+            }
+
+            treeContainer.innerHTML = `
+                <div class="flex flex-col items-center justify-center h-full text-slate-500 gap-3">
+                    <i data-lucide="loader-2" class="w-8 h-8 spinner text-blue-500"></i>
+                    <p>Fetching repository tree...</p>
+                </div>`;
+            lucide.createIcons();
+            
+            try {
+                // 1. Get Repo Details & Default Branch
+                const repoRes = await fetch(`https://api.github.com/repos/${repoPath}`);
+                if (!repoRes.ok) throw new Error(repoRes.status === 404 ? "Repository not found" : "API Limit Exceeded or Error");
+                const repoData = await repoRes.json();
+                defaultBranch = repoData.default_branch;
+                currentRepo = repoPath;
+                repoStats.innerHTML = `<i data-lucide="star" class="w-4 h-4 inline mr-1"></i> ${repoData.stargazers_count} | <i data-lucide="git-branch" class="w-4 h-4 inline mr-1"></i> ${defaultBranch}`;
+                lucide.createIcons();
+
+                // 2. Fetch Git Tree
+                const treeRes = await fetch(`https://api.github.com/repos/${repoPath}/git/trees/${defaultBranch}?recursive=1`);
+                if (!treeRes.ok) throw new Error("Could not fetch file tree");
+                const treeData = await treeRes.json();
+
+                renderTreeUI(treeData.tree);
+
+            } catch (err) {
+                treeContainer.innerHTML = `
+                    <div class="flex flex-col items-center justify-center h-full text-red-400 gap-3 text-center px-4">
+                        <i data-lucide="alert-triangle" class="w-8 h-8"></i>
+                        <p>${err.message}</p>
+                    </div>`;
+                lucide.createIcons();
+                showError(err.message);
+            }
+        }
+
+        // Tree Builder & Renderer
+        function renderTreeUI(flatTree) {
+            // Build nested structure
+            const root = { name: 'root', type: 'tree', children: {} };
+            
+            flatTree.forEach(item => {
+                const parts = item.path.split('/');
+                let current = root;
+                
+                parts.forEach((part, i) => {
+                    if (!current.children[part]) {
+                        current.children[part] = {
+                            name: part,
+                            type: i === parts.length - 1 ? item.type : 'tree',
+                            path: item.path,
+                            size: item.size,
+                            url: item.url,
+                            children: {}
+                        };
+                    }
+                    current = current.children[part];
+                });
+            });
+
+            // Recursive function to generate DOM elements
+            function createNodeElement(node, depth = 0) {
+                const container = document.createElement('div');
+                
+                // Sort children: directories first, then files
+                const children = Object.values(node.children).sort((a, b) => {
+                    if (a.type === b.type) return a.name.localeCompare(b.name);
+                    return a.type === 'tree' ? -1 : 1;
+                });
+
+                children.forEach(child => {
+                    const itemDiv = document.createElement('div');
+                    const paddingLeft = depth * 16 + 8;
+                    
+                    if (child.type === 'tree') {
+                        // Directory
+                        itemDiv.className = 'tree-item flex items-center py-1.5 px-2 rounded-md text-slate-300';
+                        itemDiv.style.paddingLeft = `${paddingLeft}px`;
+                        itemDiv.innerHTML = `
+                            <i data-lucide="chevron-right" class="w-3.5 h-3.5 mr-1.5 transition-transform duration-200"></i>
+                            <i data-lucide="folder" class="w-4 h-4 mr-2 text-blue-400"></i>
+                            <span class="truncate">${child.name}</span>
+                        `;
+                        
+                        const childrenContainer = document.createElement('div');
+                        childrenContainer.className = 'folder-content collapsed';
+                        childrenContainer.appendChild(createNodeElement(child, depth + 1));
+                        
+                        itemDiv.onclick = (e) => {
+                            const chevron = itemDiv.querySelector('[data-lucide^="chevron"]');
+                            const isCollapsed = childrenContainer.classList.contains('collapsed');
+                            
+                            if (isCollapsed) {
+                                childrenContainer.classList.remove('collapsed');
+                                chevron.setAttribute('data-lucide', 'chevron-down');
+                            } else {
+                                childrenContainer.classList.add('collapsed');
+                                chevron.setAttribute('data-lucide', 'chevron-right');
+                            }
+                            lucide.createIcons();
+                        };
+
+                        container.appendChild(itemDiv);
+                        container.appendChild(childrenContainer);
+                    } else {
+                        // File
+                        const ext = child.name.split('.').pop().toLowerCase();
+                        const iconName = getIconForFile(child.name);
+                        const isImage = imageExts.includes(ext);
+                        
+                        itemDiv.className = 'tree-item flex items-center py-1.5 px-2 rounded-md text-slate-400 hover:text-slate-200';
+                        itemDiv.style.paddingLeft = `${paddingLeft + 18}px`; // Extra indent to align with folders
+                        itemDiv.innerHTML = `
+                            <i data-lucide="${iconName}" class="w-4 h-4 mr-2 ${isImage ? 'text-purple-400' : 'text-slate-500'}"></i>
+                            <span class="truncate">${child.name}</span>
+                        `;
+                        
+                        itemDiv.onclick = () => loadFileContent(child, itemDiv);
+                        container.appendChild(itemDiv);
+                    }
+                });
+                return container;
+            }
+
+            treeContainer.innerHTML = '';
+            treeContainer.appendChild(createNodeElement(root));
+            lucide.createIcons();
+        }
+
+        // Fetch and Display File Content
+        async function loadFileContent(file, element) {
+            // UI Updates
+            if (activeFileElement) activeFileElement.classList.remove('active');
+            activeFileElement = element;
+            activeFileElement.classList.add('active');
+
+            emptyState.classList.add('hidden');
+            codeWrapper.classList.add('hidden');
+            imageWrapper.classList.add('hidden');
+            loadingState.classList.remove('hidden');
+            fileHeader.classList.remove('hidden');
+            
+            fileHeaderName.textContent = file.name;
+            fileSize.textContent = formatBytes(file.size);
+            const iconName = getIconForFile(file.name);
+            document.getElementById('file-header-icon').setAttribute('data-lucide', iconName);
+            lucide.createIcons();
+
+            const ext = file.name.split('.').pop().toLowerCase();
+            const rawUrl = `https://raw.githubusercontent.com/${currentRepo}/${defaultBranch}/${file.path}`;
+            rawLink.href = rawUrl;
+
+            try {
+                if (imageExts.includes(ext)) {
+                    // Handle Images
+                    loadingState.classList.add('hidden');
+                    imageWrapper.classList.remove('hidden');
+                    imageDisplay.src = rawUrl;
+                } else {
+                    // Handle Text/Code
+                    const res = await fetch(rawUrl);
+                    if (!res.ok) throw new Error("Failed to fetch file content");
+                    
+                    const text = await res.text();
+                    
+                    codeDisplay.textContent = text;
+                    codeDisplay.className = `language-${ext} text-sm`;
+                    
+                    // Reset highlight.js formatting then re-apply
+                    delete codeDisplay.dataset.highlighted;
+                    hljs.highlightElement(codeDisplay);
+
+                    loadingState.classList.add('hidden');
+                    codeWrapper.classList.remove('hidden');
+                }
+            } catch (err) {
+                loadingState.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+                emptyState.innerHTML = `
+                    <i data-lucide="file-warning" class="w-16 h-16 mb-4 text-red-500"></i>
+                    <p class="text-lg font-medium text-slate-400">Cannot load file</p>
+                    <p class="text-sm mt-1 text-slate-500 text-center max-w-sm">This file might be a binary format or too large to preview.</p>
+                `;
+                lucide.createIcons();
+            }
+        }
+
+        // Event Listeners
+        loadBtn.addEventListener('click', fetchRepo);
+        repoInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') fetchRepo();
+        });
+
+        copyBtn.addEventListener('click', () => {
+            if (codeDisplay.textContent) {
+                navigator.clipboard.writeText(codeDisplay.textContent).then(() => {
+                    const originalIcon = copyBtn.innerHTML;
+                    copyBtn.innerHTML = '<i data-lucide="check" class="w-4 h-4 text-green-400"></i>';
+                    lucide.createIcons();
+                    setTimeout(() => {
+                        copyBtn.innerHTML = originalIcon;
+                    }, 2000);
+                });
+            }
+        });
+
+        // Initialize empty state icon
+        lucide.createIcons();
+
+        // Optional: Auto-load if you want it to immediately run
+        // document.addEventListener('DOMContentLoaded', fetchRepo);
+
+    </script>
+</body>
+</html>
