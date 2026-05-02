@@ -550,7 +550,7 @@
         // --- Gemini AI Logic ---
         // WARNING: Hardcoding your API key here will expose it to anyone who views your website's source code!
         // Only do this if your repository/website is strictly private.
-        const apiKey = "AIzaSyD_tsr9BjVCFhlDdd4TyJyj0qNJjPoTCbk"; // Paste your key between the quotes here to hardcode it.
+        const apiKey = "AIzaSyBBZAIlgM5l2aHeNEulRRpzCoEhFib9KzE"; // Paste your key exactly between these quotes.
         
         let userApiKey = localStorage.getItem('gemini_api_key') || "";
         
@@ -566,11 +566,20 @@
         
         closeAiBtn.addEventListener('click', closeAIPanel);
 
-        async function callGemini(prompt, systemInstruction) {
+        async function callGemini(promptText, systemInstruction) {
             const currentKey = apiKey || userApiKey;
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${currentKey}`;
+            
+            // The Canvas environment requires the 'preview' model, but public Google AI Studio 
+            // API keys require standard public models. We attempt them in order to ensure compatibility everywhere.
+            const models = [
+                "gemini-2.5-flash-preview-09-2025", 
+                "gemini-2.5-flash",
+                "gemini-1.5-flash"
+            ];
+            let modelIndex = 0;
+            
             const payload = {
-                contents: [{ parts: [{ text: prompt }] }],
+                contents: [{ parts: [{ text: promptText }] }],
                 systemInstruction: { parts: [{ text: systemInstruction }] }
             };
             
@@ -579,25 +588,43 @@
             
             while (attempt < 5) {
                 try {
+                    const url = `https://generativelanguage.googleapis.com/v1beta/models/${models[modelIndex]}:generateContent?key=${currentKey}`;
                     const response = await fetch(url, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)
                     });
+                    
                     if (!response.ok) {
+                        // If the API says "Model not found" (404), it means the key is valid but it rejects the model name.
+                        // We immediately switch to the next standard public model and retry!
+                        if (response.status === 404 && modelIndex < models.length - 1) {
+                            modelIndex++;
+                            throw new Error("MODEL_FALLBACK"); 
+                        }
+                        
                         if (response.status === 400 || response.status === 403) {
                             localStorage.removeItem('gemini_api_key');
                             userApiKey = "";
-                            throw new Error("Invalid or Missing API Key. Please click the button again to try a new key.");
+                            throw new Error("API Key Error: Invalid or Missing Key. Please check your key.");
                         }
                         throw new Error(`API Error (${response.status})`);
                     }
+                    
                     const data = await response.json();
                     return data.candidates?.[0]?.content?.parts?.[0]?.text || "No response generated.";
                 } catch (error) {
-                    if (error.message.includes("API Key")) throw error; // Don't retry if auth fails
+                    if (error.message.includes("API Key Error")) throw error; // Stop completely on auth errors
+                    
+                    // Instantly retry the loop if we are just switching models (no timeout)
+                    if (error.message === "MODEL_FALLBACK") {
+                        continue;
+                    }
+
                     attempt++;
-                    if (attempt >= 5) throw new Error("Failed to connect to Gemini API after multiple retries. Check network or key.");
+                    if (attempt >= 5) throw new Error("Failed to connect to Gemini API. Check your API key and network.");
+                    
+                    // Backoff delay for real network failures
                     await new Promise(r => setTimeout(r, delays[attempt - 1]));
                 }
             }
