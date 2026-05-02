@@ -47,41 +47,52 @@
 <body class="h-screen flex flex-col overflow-hidden">
 
     <!-- Navbar -->
-    <header class="bg-slate-900 border-b border-slate-800 flex items-center justify-between px-6 py-4 shrink-0 shadow-lg z-10">
-        <div class="flex items-center gap-3">
-            <i data-lucide="book-open" class="text-blue-400 w-6 h-6"></i>
-            <h1 class="font-bold text-xl tracking-tight text-slate-100">ThVariableYT's <span class="text-blue-500">Repository Viewer</span></h1>
+    <header class="bg-slate-900 border-b border-slate-800 flex flex-col md:flex-row items-center justify-between px-4 sm:px-6 py-3 sm:py-4 shrink-0 shadow-lg z-30 gap-3 md:gap-0 relative">
+        <div class="flex items-center w-full md:w-auto gap-3">
+            <button id="mobile-menu-btn" class="md:hidden p-1 -ml-1 text-slate-400 hover:text-white rounded-md transition-colors" title="Toggle Explorer">
+                <i data-lucide="menu" class="w-6 h-6"></i>
+            </button>
+            <i data-lucide="book-open" class="text-blue-400 w-5 h-5 sm:w-6 sm:h-6 shrink-0"></i>
+            <h1 class="font-bold text-lg sm:text-xl tracking-tight text-slate-100 truncate">
+                ThVariableYT's <span class="text-blue-500 hidden sm:inline">Repository Viewer</span><span class="text-blue-500 sm:hidden">Viewer</span>
+            </h1>
         </div>
-        <div class="flex items-center gap-2 flex-1 max-w-xl ml-8">
+        <div class="flex items-center gap-2 w-full md:flex-1 max-w-xl md:ml-8">
             <div class="relative w-full">
-                <i data-lucide="github" class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400"></i>
+                <i data-lucide="github" class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-slate-400"></i>
                 <input type="text" id="repo-input" value="ThVariableYT/Web-Programming-Practicals" 
-                    class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block pl-10 p-2.5 transition-colors" 
+                    class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-xs sm:text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block pl-9 sm:pl-10 p-2 sm:p-2.5 transition-colors" 
                     placeholder="owner/repository">
             </div>
-            <button id="load-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg text-sm px-5 py-2.5 transition-colors focus:ring-4 focus:ring-blue-900 flex items-center gap-2">
-                <i data-lucide="search" class="w-4 h-4"></i> Load
+            <button id="load-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg text-xs sm:text-sm px-4 sm:px-5 py-2 sm:py-2.5 transition-colors focus:ring-4 focus:ring-blue-900 flex items-center gap-1 sm:gap-2 shrink-0">
+                <i data-lucide="search" class="w-4 h-4"></i> <span class="hidden sm:inline">Load</span>
             </button>
         </div>
-        <div class="hidden md:flex items-center gap-4 text-sm text-slate-400">
+        <div class="hidden lg:flex items-center gap-4 text-sm text-slate-400 shrink-0">
             <span id="repo-stats"></span>
         </div>
     </header>
 
     <!-- Main Content -->
-    <main class="flex-1 flex overflow-hidden">
+    <main class="flex-1 flex overflow-hidden relative">
         
+        <!-- Mobile Sidebar Overlay -->
+        <div id="sidebar-overlay" class="absolute inset-0 bg-[#0f172a]/80 backdrop-blur-sm z-10 hidden transition-opacity duration-300"></div>
+
         <!-- Sidebar (File Tree) -->
-        <aside class="w-72 bg-slate-900/50 border-r border-slate-800 flex flex-col overflow-hidden shrink-0">
-            <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900">
+        <aside id="sidebar" class="absolute md:relative z-20 w-72 h-full bg-slate-900 border-r border-slate-800 flex flex-col overflow-hidden shrink-0 transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out shadow-2xl md:shadow-none">
+            <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900 shrink-0">
                 <h2 class="font-semibold text-slate-300 flex items-center gap-2">
                     <i data-lucide="folder-tree" class="w-4 h-4"></i> Explorer
                 </h2>
+                <button id="close-sidebar-btn" class="md:hidden p-1 text-slate-400 hover:text-white rounded-md">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
             </div>
             <div id="tree-container" class="flex-1 overflow-y-auto p-2 text-sm text-slate-300">
                 <div class="flex flex-col items-center justify-center h-full text-slate-500 gap-3">
                     <i data-lucide="arrow-up" class="w-8 h-8 animate-bounce"></i>
-                    <p>Enter a repository and click Load</p>
+                    <p class="text-center text-xs sm:text-sm px-4">Enter a repository and click Load</p>
                 </div>
             </div>
         </aside>
@@ -90,13 +101,13 @@
         <section class="flex-1 bg-[#0d1117] relative flex flex-col min-w-0">
             
             <!-- File Header -->
-            <div id="file-header" class="h-12 border-b border-slate-800 flex items-center px-4 bg-slate-900/80 backdrop-blur shrink-0 hidden">
-                <div class="flex items-center gap-2 text-slate-300 text-sm font-medium">
-                    <i id="file-header-icon" data-lucide="file" class="w-4 h-4 text-slate-400"></i>
-                    <span id="file-header-name">filename.js</span>
+            <div id="file-header" class="h-12 border-b border-slate-800 flex items-center px-3 sm:px-4 bg-slate-900/80 backdrop-blur shrink-0 hidden">
+                <div class="flex items-center gap-2 text-slate-300 text-xs sm:text-sm font-medium overflow-hidden">
+                    <i id="file-header-icon" data-lucide="file" class="w-4 h-4 text-slate-400 shrink-0"></i>
+                    <span id="file-header-name" class="truncate max-w-[150px] sm:max-w-md">filename.js</span>
                 </div>
-                <div class="ml-auto flex items-center gap-3">
-                    <span id="file-size" class="text-xs text-slate-500"></span>
+                <div class="ml-auto flex items-center gap-1 sm:gap-3 pl-2">
+                    <span id="file-size" class="text-[10px] sm:text-xs text-slate-500 hidden sm:inline"></span>
                     <button id="copy-btn" class="p-1.5 hover:bg-slate-700 rounded-md transition-colors text-slate-400 hover:text-white" title="Copy Code">
                         <i data-lucide="copy" class="w-4 h-4"></i>
                     </button>
@@ -110,24 +121,24 @@
             <div id="content-container" class="flex-1 overflow-auto relative">
                 
                 <!-- Initial State -->
-                <div id="empty-state" class="absolute inset-0 flex flex-col items-center justify-center text-slate-500">
-                    <i data-lucide="code-2" class="w-16 h-16 mb-4 text-slate-700"></i>
-                    <p class="text-lg font-medium text-slate-400">No file selected</p>
-                    <p class="text-sm mt-1">Select a file from the explorer to view its contents</p>
+                <div id="empty-state" class="absolute inset-0 flex flex-col items-center justify-center text-slate-500 p-6 text-center">
+                    <i data-lucide="code-2" class="w-12 h-12 sm:w-16 sm:h-16 mb-4 text-slate-700"></i>
+                    <p class="text-base sm:text-lg font-medium text-slate-400">No file selected</p>
+                    <p class="text-xs sm:text-sm mt-1">Select a file from the explorer to view its contents</p>
                 </div>
 
                 <!-- Loading State -->
                 <div id="loading-state" class="absolute inset-0 flex flex-col items-center justify-center bg-[#0d1117]/80 z-10 hidden">
                     <i data-lucide="loader-2" class="w-8 h-8 text-blue-500 spinner mb-4"></i>
-                    <p class="text-slate-300" id="loading-text">Loading...</p>
+                    <p class="text-sm sm:text-base text-slate-300" id="loading-text">Loading...</p>
                 </div>
 
                 <!-- Code Block -->
-                <pre id="code-wrapper" class="hidden m-0 p-6 min-h-full"><code id="code-display" class="text-sm"></code></pre>
+                <pre id="code-wrapper" class="hidden m-0 p-4 sm:p-6 min-h-full"><code id="code-display" class="text-xs sm:text-sm"></code></pre>
                 
                 <!-- Image Viewer -->
-                <div id="image-wrapper" class="hidden h-full flex items-center justify-center p-8">
-                    <img id="image-display" src="" alt="File preview" class="max-w-full max-h-full rounded shadow-lg">
+                <div id="image-wrapper" class="hidden h-full flex items-center justify-center p-4 sm:p-8">
+                    <img id="image-display" src="" alt="File preview" class="max-w-full max-h-full rounded shadow-lg object-contain">
                 </div>
 
             </div>
@@ -135,9 +146,9 @@
     </main>
 
     <!-- Error Toast -->
-    <div id="error-toast" class="fixed bottom-6 right-6 bg-red-900/90 border border-red-700 text-white px-6 py-4 rounded-lg shadow-2xl transform transition-transform translate-y-24 opacity-0 flex items-center gap-3 z-50">
-        <i data-lucide="alert-circle" class="w-5 h-5 text-red-400"></i>
-        <span id="error-message" class="text-sm font-medium"></span>
+    <div id="error-toast" class="fixed bottom-6 right-6 bg-red-900/90 border border-red-700 text-white px-6 py-4 rounded-lg shadow-2xl transform transition-transform translate-y-32 opacity-0 flex items-center gap-3 z-50">
+        <i data-lucide="alert-circle" class="w-5 h-5 text-red-400 shrink-0"></i>
+        <span id="error-message" class="text-xs sm:text-sm font-medium"></span>
     </div>
 
     <script>
@@ -161,6 +172,12 @@
         const copyBtn = document.getElementById('copy-btn');
         const rawLink = document.getElementById('raw-link');
         const repoStats = document.getElementById('repo-stats');
+        
+        // Mobile DOM Elements
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebar-overlay');
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        const closeSidebarBtn = document.getElementById('close-sidebar-btn');
 
         // State
         let currentRepo = '';
@@ -174,16 +191,32 @@
             'png': 'image', 'jpg': 'image', 'jpeg': 'image', 'gif': 'image', 'svg': 'image', 'ico': 'image',
             'pdf': 'file-text', 'zip': 'file-archive', 'gitignore': 'file-cog'
         };
-        const imageExts = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'ico'];
+        const imageExts = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'ico', 'webp'];
+        const unsupportedExts = [
+            'pdf', 'zip', 'tar', 'gz', 'rar', '7z', 'exe', 'dll', 'so', 'dylib', 
+            'mp3', 'mp4', 'avi', 'mkv', 'webm', 'mov', 'ttf', 'otf', 'woff', 'woff2', 
+            'eot', 'db', 'sqlite', 'sqlite3', 'bin', 'iso', 'dmg', 'class', 'jar', 'pyc'
+        ];
 
-        // Helpers
+        // UI Helpers
+        const toggleSidebar = () => {
+            const isClosed = sidebar.classList.contains('-translate-x-full');
+            if (isClosed) {
+                sidebar.classList.remove('-translate-x-full');
+                sidebarOverlay.classList.remove('hidden');
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                sidebarOverlay.classList.add('hidden');
+            }
+        };
+
         const showError = (msg) => {
             const toast = document.getElementById('error-toast');
             document.getElementById('error-message').textContent = msg;
             toast.style.transform = 'translateY(0)';
             toast.style.opacity = '1';
             setTimeout(() => {
-                toast.style.transform = 'translateY(24px)';
+                toast.style.transform = 'translateY(128px)';
                 toast.style.opacity = '0';
             }, 5000);
         };
@@ -210,17 +243,22 @@
                 return;
             }
 
+            // On mobile, automatically open sidebar when loading starts
+            if (window.innerWidth < 768 && sidebar.classList.contains('-translate-x-full')) {
+                toggleSidebar();
+            }
+
             treeContainer.innerHTML = `
                 <div class="flex flex-col items-center justify-center h-full text-slate-500 gap-3">
                     <i data-lucide="loader-2" class="w-8 h-8 spinner text-blue-500"></i>
-                    <p>Fetching repository tree...</p>
+                    <p class="text-xs sm:text-sm">Fetching repository tree...</p>
                 </div>`;
             lucide.createIcons();
             
             try {
                 // 1. Get Repo Details & Default Branch
                 const repoRes = await fetch(`https://api.github.com/repos/${repoPath}`);
-                if (!repoRes.ok) throw new Error(repoRes.status === 404 ? "Repository not found" : "API Limit Exceeded or Error");
+                if (!repoRes.ok) throw new Error(repoRes.status === 404 ? "Repository not found" : "API Limit Exceeded");
                 const repoData = await repoRes.json();
                 defaultBranch = repoData.default_branch;
                 currentRepo = repoPath;
@@ -237,8 +275,8 @@
             } catch (err) {
                 treeContainer.innerHTML = `
                     <div class="flex flex-col items-center justify-center h-full text-red-400 gap-3 text-center px-4">
-                        <i data-lucide="alert-triangle" class="w-8 h-8"></i>
-                        <p>${err.message}</p>
+                        <i data-lucide="alert-triangle" class="w-8 h-8 shrink-0"></i>
+                        <p class="text-xs sm:text-sm">${err.message}</p>
                     </div>`;
                 lucide.createIcons();
                 showError(err.message);
@@ -285,11 +323,11 @@
                     
                     if (child.type === 'tree') {
                         // Directory
-                        itemDiv.className = 'tree-item flex items-center py-1.5 px-2 rounded-md text-slate-300';
+                        itemDiv.className = 'tree-item flex items-center py-2 sm:py-1.5 px-2 rounded-md text-slate-300';
                         itemDiv.style.paddingLeft = `${paddingLeft}px`;
                         itemDiv.innerHTML = `
-                            <i data-lucide="chevron-right" class="w-3.5 h-3.5 mr-1.5 transition-transform duration-200"></i>
-                            <i data-lucide="folder" class="w-4 h-4 mr-2 text-blue-400"></i>
+                            <i data-lucide="chevron-right" class="w-3.5 h-3.5 mr-1.5 shrink-0 transition-transform duration-200"></i>
+                            <i data-lucide="folder" class="w-4 h-4 mr-2 shrink-0 text-blue-400"></i>
                             <span class="truncate">${child.name}</span>
                         `;
                         
@@ -319,10 +357,10 @@
                         const iconName = getIconForFile(child.name);
                         const isImage = imageExts.includes(ext);
                         
-                        itemDiv.className = 'tree-item flex items-center py-1.5 px-2 rounded-md text-slate-400 hover:text-slate-200';
+                        itemDiv.className = 'tree-item flex items-center py-2 sm:py-1.5 px-2 rounded-md text-slate-400 hover:text-slate-200';
                         itemDiv.style.paddingLeft = `${paddingLeft + 18}px`; // Extra indent to align with folders
                         itemDiv.innerHTML = `
-                            <i data-lucide="${iconName}" class="w-4 h-4 mr-2 ${isImage ? 'text-purple-400' : 'text-slate-500'}"></i>
+                            <i data-lucide="${iconName}" class="w-4 h-4 mr-2 shrink-0 ${isImage ? 'text-purple-400' : 'text-slate-500'}"></i>
                             <span class="truncate">${child.name}</span>
                         `;
                         
@@ -340,6 +378,11 @@
 
         // Fetch and Display File Content
         async function loadFileContent(file, element) {
+            // Mobile Optimization: close sidebar on selection
+            if (window.innerWidth < 768) {
+                toggleSidebar();
+            }
+
             // UI Updates
             if (activeFileElement) activeFileElement.classList.remove('active');
             activeFileElement = element;
@@ -357,7 +400,7 @@
             document.getElementById('file-header-icon').setAttribute('data-lucide', iconName);
             lucide.createIcons();
 
-            const ext = file.name.split('.').pop().toLowerCase();
+            const ext = file.name.includes('.') ? file.name.split('.').pop().toLowerCase() : file.name.toLowerCase();
             const rawUrl = `https://raw.githubusercontent.com/${currentRepo}/${defaultBranch}/${file.path}`;
             rawLink.href = rawUrl;
 
@@ -367,6 +410,26 @@
                     loadingState.classList.add('hidden');
                     imageWrapper.classList.remove('hidden');
                     imageDisplay.src = rawUrl;
+                } else if (unsupportedExts.includes(ext)) {
+                    // Handle Unsupported Formats explicitly
+                    loadingState.classList.add('hidden');
+                    emptyState.classList.remove('hidden');
+                    emptyState.innerHTML = `
+                        <i data-lucide="file-x" class="w-12 h-12 sm:w-16 sm:h-16 mb-4 text-slate-500"></i>
+                        <p class="text-base sm:text-lg font-medium text-slate-400">Unsupported format</p>
+                        <p class="text-xs sm:text-sm mt-1 text-slate-500 text-center max-w-[250px] sm:max-w-sm">Previewing this file format is not supported. Use the raw link to view or download.</p>
+                    `;
+                    lucide.createIcons();
+                } else if (file.size > 1048576) {
+                    // Handle Large Files (Over 1MB)
+                    loadingState.classList.add('hidden');
+                    emptyState.classList.remove('hidden');
+                    emptyState.innerHTML = `
+                        <i data-lucide="hard-drive" class="w-12 h-12 sm:w-16 sm:h-16 mb-4 text-yellow-500"></i>
+                        <p class="text-base sm:text-lg font-medium text-slate-400">File too large</p>
+                        <p class="text-xs sm:text-sm mt-1 text-slate-500 text-center max-w-[250px] sm:max-w-sm">This file is too large (${formatBytes(file.size)}) to preview safely.</p>
+                    `;
+                    lucide.createIcons();
                 } else {
                     // Handle Text/Code
                     const res = await fetch(rawUrl);
@@ -375,7 +438,7 @@
                     const text = await res.text();
                     
                     codeDisplay.textContent = text;
-                    codeDisplay.className = `language-${ext} text-sm`;
+                    codeDisplay.className = `language-${ext} text-xs sm:text-sm`;
                     
                     // Reset highlight.js formatting then re-apply
                     delete codeDisplay.dataset.highlighted;
@@ -388,9 +451,9 @@
                 loadingState.classList.add('hidden');
                 emptyState.classList.remove('hidden');
                 emptyState.innerHTML = `
-                    <i data-lucide="file-warning" class="w-16 h-16 mb-4 text-red-500"></i>
-                    <p class="text-lg font-medium text-slate-400">Cannot load file</p>
-                    <p class="text-sm mt-1 text-slate-500 text-center max-w-sm">This file might be a binary format or too large to preview.</p>
+                    <i data-lucide="file-warning" class="w-12 h-12 sm:w-16 sm:h-16 mb-4 text-red-500"></i>
+                    <p class="text-base sm:text-lg font-medium text-slate-400">Cannot load file</p>
+                    <p class="text-xs sm:text-sm mt-1 text-slate-500 text-center max-w-[250px] sm:max-w-sm">This file might be a binary format or too large to preview.</p>
                 `;
                 lucide.createIcons();
             }
@@ -401,6 +464,11 @@
         repoInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') fetchRepo();
         });
+
+        // Mobile Sidebar Listeners
+        mobileMenuBtn.addEventListener('click', toggleSidebar);
+        closeSidebarBtn.addEventListener('click', toggleSidebar);
+        sidebarOverlay.addEventListener('click', toggleSidebar);
 
         copyBtn.addEventListener('click', () => {
             if (codeDisplay.textContent) {
@@ -417,9 +485,6 @@
 
         // Initialize empty state icon
         lucide.createIcons();
-
-        // Optional: Auto-load if you want it to immediately run
-        // document.addEventListener('DOMContentLoaded', fetchRepo);
 
     </script>
 </body>
