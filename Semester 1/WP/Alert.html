@@ -1,0 +1,29 @@
+<html>
+<head>
+<title> Javascript Popup Boxes Titles </title>
+</head>
+<body>
+<button onclick = "showAlert()"> Alert </button>
+<button onclick = "showConfirm()"> Confirm </button>
+<button onclick = "showPrompt()"> Prompt </button>
+<script>
+function showAlert()
+{
+alert ("This is an alert POPUP!");
+}
+function showConfirm()
+{
+let result = confirm ("Do you want to proceed");
+if (result)
+alert("you pressed ok!");
+else
+alert("you pressed cancel");
+}
+function showPrompt()
+{
+let name = prompt("Please enter your name:", "Guest");
+alert("Hello " + name + "!");
+}
+</script>
+</body>
+</html>

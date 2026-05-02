@@ -1,0 +1,16 @@
+<html>
+    <body>
+        <script>
+            let n = parseInt(prompt("Enter a number for fibo limit:"))
+            let a = 0, b = 1, result = "0 1 ";
+            for(let i = 2; i < n; i++)
+        {
+            let c = a + b;
+            result += c + " ";
+            a = b;
+            b = c;
+        }
+        document.write(result);
+        </script>
+    </body>
+</html>

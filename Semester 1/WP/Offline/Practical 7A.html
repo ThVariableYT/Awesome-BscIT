@@ -1,0 +1,21 @@
+<html>
+    <body>
+        <script>
+            //RegExp
+            let pattern= /[A-Z]/g;
+            document.write(pattern.test("JavaScript") + "<br>");
+            document.write(pattern.exec("JavaScript") + "<br>");
+            document.write("JavaScript".match(pattern) + "<br>");
+            document.write("JavaScript".search(pattern) + "<br>");
+            document.write("JavaScript".replace(pattern, "*") + "<br>");
+
+            //number
+            let num = 123.456;
+            document.write(num.toFixed(2) + "<br>");
+            document.write(Number.isInteger(num) + "<br>");
+            document.write(Number.isNaN("abc") + "<br>");
+            document.write(Number.parseInt("10.123") + "<br>");
+            document.write(Number.MAX_VALUE + "<br>");
+        </script>
+    </body>
+</html>

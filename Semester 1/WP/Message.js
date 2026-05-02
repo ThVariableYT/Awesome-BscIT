@@ -1,0 +1,13 @@
+let msg = "JavaScript";
+document.write(msg.length);
+//10
+document.write(msg.toUpperCase());
+//
+JAVASCRIPT
+document.write(msg.toLowerCase());
+//
+javascript
+document.write(msg.indexOf("S"));
+// 4
+document.write(msg.slice(0,4));
+// Java

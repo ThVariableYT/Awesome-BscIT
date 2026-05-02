@@ -1,0 +1,31 @@
+    /* a. Change the background of the page */
+    body {
+      background-color: yellow;
+          }
+
+    /* b. Change fonts and text styles */
+    h1 {
+      color: darkblue;
+      font-size: 50px;
+      text-align: center;
+      text-decoration: underline;
+    }
+
+    p {
+      font-size: 28px;
+      color: green;
+      font-style: italic;
+    }
+
+    /* c. Positioning an element */
+    h2 {
+      width: 200px;
+      height: 100px;
+      color:white;
+      background-color: pink;
+      position: absolute;
+      top: 200px;
+      left: 250px;
+      padding: 50px;
+      border: 10px solid;
+    }

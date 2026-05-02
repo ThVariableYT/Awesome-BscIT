@@ -1,0 +1,17 @@
+<html>
+    <body>
+        <h3> Form  Events </h3>
+            <form onsubmit="alert('Form Submitted');return false">
+                <input placeholder="Change" onchange="alert('Changed')">
+                <input placeholder="Input" oninput="alert('Typing...')">
+                <input placeholder="Focus" onfocus="alert('Focused')">
+                <input placeholder="Blur" onblur="alert('Blurred')">
+                <button> Submit </button>
+            </form>
+            <h3> Clipboard Events </h3>
+            <textarea placeholder="Cut/Copy/Paste" oncopy="alert('Copied')" oncut="alert('Cut')" onpaste="alert('Paste')"> 
+            </textarea>
+            <h3> Window Events </h3>
+            <button onclick="alert('Size: '+window.innerWidth+' x '+window.innerHeight,)"> Check Size </button>
+        </body>
+</html>
