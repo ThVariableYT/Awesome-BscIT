@@ -167,6 +167,11 @@
                         <img id="image-display" src="" alt="File preview" class="max-w-full max-h-full rounded shadow-lg object-contain">
                     </div>
 
+                    <!-- Document Viewer -->
+                    <div id="doc-wrapper" class="hidden h-full w-full bg-slate-200">
+                        <iframe id="doc-display" src="" class="w-full h-full border-0"></iframe>
+                    </div>
+
                 </div> <!-- End content-container -->
 
                 <!-- AI Panel -->
@@ -215,6 +220,8 @@
         const codeDisplay = document.getElementById('code-display');
         const imageWrapper = document.getElementById('image-wrapper');
         const imageDisplay = document.getElementById('image-display');
+        const docWrapper = document.getElementById('doc-wrapper');
+        const docDisplay = document.getElementById('doc-display');
         const fileHeader = document.getElementById('file-header');
         const fileHeaderName = document.getElementById('file-header-name');
         const fileSize = document.getElementById('file-size');
@@ -246,11 +253,12 @@
             'html': 'file-code-2', 'js': 'file-json', 'jsx': 'file-json-2', 'ts': 'file-type-2', 'tsx': 'file-type-2',
             'css': 'file-code', 'json': 'file-json', 'md': 'file-text', 'py': 'file-code-2', 'java': 'file-code-2',
             'png': 'image', 'jpg': 'image', 'jpeg': 'image', 'gif': 'image', 'svg': 'image', 'ico': 'image',
-            'pdf': 'file-text', 'zip': 'file-archive', 'gitignore': 'file-cog'
+            'pdf': 'file-text', 'doc': 'file-text', 'docx': 'file-text', 'zip': 'file-archive', 'gitignore': 'file-cog'
         };
         const imageExts = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'ico', 'webp'];
+        const docExts = ['pdf', 'doc', 'docx'];
         const unsupportedExts = [
-            'pdf', 'zip', 'tar', 'gz', 'rar', '7z', 'exe', 'dll', 'so', 'dylib', 
+            'zip', 'tar', 'gz', 'rar', '7z', 'exe', 'dll', 'so', 'dylib', 
             'mp3', 'mp4', 'avi', 'mkv', 'webm', 'mov', 'ttf', 'otf', 'woff', 'woff2', 
             'eot', 'db', 'sqlite', 'sqlite3', 'bin', 'iso', 'dmg', 'class', 'jar', 'pyc'
         ];
@@ -448,6 +456,7 @@
             emptyState.classList.add('hidden');
             codeWrapper.classList.add('hidden');
             imageWrapper.classList.add('hidden');
+            docWrapper.classList.add('hidden');
             loadingState.classList.remove('hidden');
             fileHeader.classList.remove('hidden');
             
@@ -470,6 +479,14 @@
                     explainBtn.classList.add('hidden');
                     improveBtn.classList.add('hidden');
                     closeAIPanel();
+                } else if (docExts.includes(ext)) {
+                    // Handle Document rendering (PDF and Word Docs via Google Docs Viewer)
+                    loadingState.classList.add('hidden');
+                    docWrapper.classList.remove('hidden');
+                    docDisplay.src = `https://docs.google.com/gview?url=${encodeURIComponent(rawUrl)}&embedded=true`;
+                    explainBtn.classList.add('hidden');
+                    improveBtn.classList.add('hidden');
+                    closeAIPanel();
                 } else if (unsupportedExts.includes(ext)) {
                     // Handle Unsupported Formats explicitly
                     loadingState.classList.add('hidden');
@@ -484,7 +501,7 @@
                     improveBtn.classList.add('hidden');
                     closeAIPanel();
                 } else if (file.size > 1048576) {
-                    // Handle Large Files (Over 1MB)
+                    // Handle Large Text Files (Over 1MB)
                     loadingState.classList.add('hidden');
                     emptyState.classList.remove('hidden');
                     emptyState.innerHTML = `
@@ -550,7 +567,7 @@
         // --- Gemini AI Logic ---
         // WARNING: Hardcoding your API key here will expose it to anyone who views your website's source code!
         // Only do this if your repository/website is strictly private.
-        const apiKey = "AIzaSyBBZAIlgM5l2aHeNEulRRpzCoEhFib9KzE"; // Paste your key exactly between these quotes.
+        const apiKey = ""; // Paste your key exactly between these quotes.
         
         let userApiKey = localStorage.getItem('gemini_api_key') || "";
         
