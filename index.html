@@ -121,6 +121,11 @@
         .hljs { background: transparent !important; padding: 0 !important; }
         #code-display { tab-size: 4; }
 
+        /* Fullscreen overrides */
+        #viewer-section:fullscreen {
+            background-color: #020617; /* Solid background when native fullscreen hides the animated blobs */
+        }
+
         /* Markdown Body Styling */
         .markdown-body h1, .markdown-body h2, .markdown-body h3 { color: #f8fafc; font-weight: 600; margin-top: 1.5em; margin-bottom: 0.5em; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.25em; }
         .markdown-body p { margin-bottom: 1em; line-height: 1.6; }
@@ -133,6 +138,7 @@
         .markdown-body a { color: #60a5fa; text-decoration: none; transition: color 0.2s; }
         .markdown-body a:hover { color: #93c5fd; text-decoration: underline; }
         .markdown-body strong { font-weight: 600; color: #f8fafc; }
+        .markdown-body img { max-width: 100%; border-radius: 8px; margin: 1em 0; border: 1px solid rgba(255,255,255,0.1); }
     </style>
 </head>
 <body class="h-screen flex flex-col relative text-slate-200">
@@ -193,6 +199,15 @@
                     <i data-lucide="x" class="w-4 h-4"></i>
                 </button>
             </div>
+            
+            <!-- Filter Search Bar -->
+            <div class="px-3 py-3 border-b border-white/5 bg-white/5 shrink-0">
+                <div class="relative group">
+                    <i data-lucide="filter" class="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-3.5 h-3.5 text-slate-400 group-focus-within:text-blue-400 transition-colors"></i>
+                    <input type="text" id="file-search" placeholder="Filter files..." class="w-full bg-black/20 border border-white/10 text-slate-200 text-xs rounded-lg pl-8 p-1.5 focus:ring-1 focus:ring-blue-500/50 outline-none transition-all placeholder-slate-500 shadow-inner">
+                </div>
+            </div>
+
             <div id="tree-container" class="flex-1 overflow-y-auto p-3 text-sm">
                 <div class="flex flex-col items-center justify-center h-full text-slate-400 gap-4">
                     <div class="p-4 rounded-full bg-white/5 border border-white/10">
@@ -204,7 +219,7 @@
         </aside>
 
         <!-- Viewer Section -->
-        <section class="flex-1 relative flex flex-col min-w-0 bg-black/10 backdrop-blur-3xl">
+        <section id="viewer-section" class="flex-1 relative flex flex-col min-w-0 bg-black/10 backdrop-blur-3xl">
             
             <!-- File Header -->
             <div id="file-header" class="h-14 border-b border-white/10 flex items-center px-4 sm:px-6 bg-slate-900/40 backdrop-blur-xl shrink-0 hidden z-10 shadow-sm transition-all duration-300">
@@ -228,7 +243,14 @@
 
                     <div class="w-px h-6 bg-white/10 mx-1 hidden sm:block"></div>
 
-                    <button id="copy-btn" class="p-2 glass-button rounded-xl text-slate-300" title="Copy Code">
+                    <!-- New Action Buttons -->
+                    <button id="download-btn" class="p-2 glass-button rounded-xl text-slate-300" title="Download File">
+                        <i data-lucide="download" class="w-4 h-4"></i>
+                    </button>
+                    <button id="fullscreen-btn" class="p-2 glass-button rounded-xl text-slate-300 hidden sm:flex" title="Toggle Fullscreen">
+                        <i data-lucide="maximize" class="w-4 h-4"></i>
+                    </button>
+                    <button id="copy-btn" class="p-2 glass-button rounded-xl text-slate-300" title="Copy Content">
                         <i data-lucide="copy" class="w-4 h-4"></i>
                     </button>
                     <a id="raw-link" href="#" target="_blank" class="p-2 glass-button rounded-xl text-slate-300" title="View Raw">
@@ -262,6 +284,9 @@
                     <!-- Code Block -->
                     <pre id="code-wrapper" class="hidden m-0 p-4 sm:p-6 min-h-full"><code id="code-display" class="text-xs sm:text-[13px] leading-relaxed tracking-wide"></code></pre>
                     
+                    <!-- Markdown Previewer -->
+                    <div id="markdown-wrapper" class="hidden markdown-body p-6 sm:p-10 min-h-full w-full max-w-5xl mx-auto"></div>
+
                     <!-- Image Viewer -->
                     <div id="image-wrapper" class="hidden h-full flex items-center justify-center p-6 sm:p-10">
                         <img id="image-display" src="" alt="File preview" class="max-w-full max-h-full rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10 object-contain bg-black/20 backdrop-blur-md">
@@ -318,18 +343,27 @@
         const repoInput = document.getElementById('repo-input');
         const loadBtn = document.getElementById('load-btn');
         const treeContainer = document.getElementById('tree-container');
+        const fileSearchInput = document.getElementById('file-search');
         const emptyState = document.getElementById('empty-state');
         const loadingState = document.getElementById('loading-state');
         const loadingText = document.getElementById('loading-text');
+        
+        // Viewer Elements
+        const viewerSection = document.getElementById('viewer-section');
         const codeWrapper = document.getElementById('code-wrapper');
         const codeDisplay = document.getElementById('code-display');
+        const markdownWrapper = document.getElementById('markdown-wrapper');
         const imageWrapper = document.getElementById('image-wrapper');
         const imageDisplay = document.getElementById('image-display');
         const docWrapper = document.getElementById('doc-wrapper');
         const docDisplay = document.getElementById('doc-display');
+        
+        // Header Controls
         const fileHeader = document.getElementById('file-header');
         const fileHeaderName = document.getElementById('file-header-name');
         const fileSize = document.getElementById('file-size');
+        const downloadBtn = document.getElementById('download-btn');
+        const fullscreenBtn = document.getElementById('fullscreen-btn');
         const copyBtn = document.getElementById('copy-btn');
         const rawLink = document.getElementById('raw-link');
         const repoStats = document.getElementById('repo-stats');
@@ -352,6 +386,8 @@
         let currentRepo = '';
         let defaultBranch = 'main';
         let activeFileElement = null;
+        let currentFileUrl = '';
+        let currentFileName = '';
 
         // File Icons Mapping
         const iconMap = {
@@ -495,7 +531,7 @@
                         itemDiv.innerHTML = `
                             <i data-lucide="chevron-right" class="w-3.5 h-3.5 mr-2 shrink-0 transition-transform duration-300 opacity-60"></i>
                             <i data-lucide="folder" class="w-4 h-4 mr-2.5 shrink-0 text-blue-400 drop-shadow-sm"></i>
-                            <span class="truncate tracking-wide">${child.name}</span>
+                            <span class="truncate tracking-wide file-name-label">${child.name}</span>
                         `;
                         
                         const childrenContainer = document.createElement('div');
@@ -536,7 +572,7 @@
                         itemDiv.style.paddingLeft = `${paddingLeft + 22}px`;
                         itemDiv.innerHTML = `
                             <i data-lucide="${iconName}" class="w-4 h-4 mr-2.5 shrink-0 ${iconColor} drop-shadow-sm"></i>
-                            <span class="truncate tracking-wide">${child.name}</span>
+                            <span class="truncate tracking-wide file-name-label">${child.name}</span>
                         `;
                         
                         itemDiv.onclick = () => loadFileContent(child, itemDiv);
@@ -547,9 +583,51 @@
             }
 
             treeContainer.innerHTML = '';
+            fileSearchInput.value = ''; // Reset search
             treeContainer.appendChild(createNodeElement(root));
             lucide.createIcons();
         }
+
+        // File Filter/Search Logic
+        fileSearchInput.addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            const allItems = treeContainer.querySelectorAll('.tree-item');
+            
+            if (!term) {
+                allItems.forEach(item => item.style.display = 'flex');
+                return;
+            }
+
+            // Hide everything initially
+            allItems.forEach(item => {
+                item.style.display = 'none';
+            });
+
+            // Re-show matches and expand their parent folders
+            allItems.forEach(item => {
+                const fileName = item.querySelector('.file-name-label').textContent.toLowerCase();
+                if (fileName.includes(term)) {
+                    item.style.display = 'flex';
+                    
+                    // Reveal all parent folders up the tree
+                    let parent = item.parentElement;
+                    while (parent && parent.classList.contains('folder-content')) {
+                        parent.classList.remove('collapsed');
+                        if (parent.previousElementSibling) {
+                            parent.previousElementSibling.style.display = 'flex';
+                            const chev = parent.previousElementSibling.querySelector('[data-lucide^="chevron"]');
+                            if (chev) {
+                                chev.setAttribute('data-lucide', 'chevron-down');
+                                chev.classList.remove('opacity-60');
+                                chev.classList.add('opacity-100');
+                            }
+                        }
+                        parent = parent.parentElement ? parent.parentElement.closest('.folder-content') : null;
+                    }
+                }
+            });
+            lucide.createIcons();
+        });
 
         // Fetch and Display File Content
         async function loadFileContent(file, element) {
@@ -563,6 +641,7 @@
 
             emptyState.classList.add('hidden');
             codeWrapper.classList.add('hidden');
+            markdownWrapper.classList.add('hidden');
             imageWrapper.classList.add('hidden');
             docWrapper.classList.add('hidden');
             loadingState.classList.remove('hidden');
@@ -577,6 +656,10 @@
             const ext = file.name.includes('.') ? file.name.split('.').pop().toLowerCase() : file.name.toLowerCase();
             const rawUrl = `https://raw.githubusercontent.com/${currentRepo}/${defaultBranch}/${file.path}`;
             rawLink.href = rawUrl;
+            
+            // Set global info for downloads
+            currentFileUrl = rawUrl;
+            currentFileName = file.name;
 
             try {
                 if (imageExts.includes(ext)) {
@@ -621,6 +704,32 @@
                     explainBtn.classList.add('hidden');
                     improveBtn.classList.add('hidden');
                     closeAIPanel();
+                } else if (ext === 'md') {
+                    // Special Handling for Markdown Files natively
+                    const res = await fetch(rawUrl);
+                    if (!res.ok) throw new Error("Failed to fetch markdown content");
+                    
+                    const text = await res.text();
+                    // Setup code display context so the copy button works
+                    codeDisplay.textContent = text; 
+                    
+                    markdownWrapper.innerHTML = marked.parse(text);
+                    markdownWrapper.querySelectorAll('pre code').forEach((block) => {
+                        hljs.highlightElement(block);
+                    });
+
+                    loadingState.classList.add('hidden');
+                    markdownWrapper.classList.remove('hidden');
+
+                    explainBtn.classList.remove('hidden');
+                    explainBtn.classList.add('flex');
+                    improveBtn.classList.remove('hidden');
+                    improveBtn.classList.add('flex');
+                    
+                    if (!aiPanel.classList.contains('hidden')) {
+                         aiContent.innerHTML = '<div class="p-4 rounded-xl bg-white/5 border border-white/10 text-center text-sm text-slate-400"><i data-lucide="mouse-pointer-click" class="w-5 h-5 mx-auto mb-2 opacity-50"></i>Select an action above to analyze this new file.</div>';
+                         lucide.createIcons();
+                    }
                 } else {
                     const res = await fetch(rawUrl);
                     if (!res.ok) throw new Error("Failed to fetch file content");
@@ -658,6 +767,46 @@
                 lucide.createIcons();
             }
         }
+
+        // Feature Additions: Fullscreen & Downloading
+        fullscreenBtn.addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                viewerSection.requestFullscreen().catch(err => {
+                    showError(`Cannot enable fullscreen: ${err.message}`);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        });
+
+        document.addEventListener('fullscreenchange', () => {
+            if (document.fullscreenElement) {
+                fullscreenBtn.innerHTML = '<i data-lucide="minimize" class="w-4 h-4"></i>';
+            } else {
+                fullscreenBtn.innerHTML = '<i data-lucide="maximize" class="w-4 h-4"></i>';
+            }
+            lucide.createIcons();
+        });
+
+        downloadBtn.addEventListener('click', async () => {
+            if (!currentFileUrl) return;
+            try {
+                // Fetch to trigger standard blob download (bypasses cross-origin anchor constraints)
+                const res = await fetch(currentFileUrl);
+                const blob = await res.blob();
+                const blobUrl = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = blobUrl;
+                a.download = currentFileName;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(blobUrl);
+                document.body.removeChild(a);
+            } catch(e) {
+                showError("Failed to download file.");
+            }
+        });
 
         // Event Listeners
         loadBtn.addEventListener('click', fetchRepo);
