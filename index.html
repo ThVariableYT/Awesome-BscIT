@@ -8,8 +8,8 @@
     <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Highlight.js for Syntax Highlighting -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <!-- Highlight.js for Syntax Highlighting (Dynamic ID added for theme swapping) -->
+    <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     
     <!-- Lucide Icons -->
@@ -24,7 +24,7 @@
     <style>
         body { 
             font-family: 'Inter', sans-serif; 
-            background-color: #020617; /* Very dark slate base */
+            background-color: #020617; 
             color: #f8fafc; 
             overflow: hidden;
         }
@@ -123,7 +123,7 @@
         }
         @media (min-width: 768px) {
             .desktop-collapsed {
-                margin-left: -18rem; /* Pulls exactly w-72 out of view while shifting main layout */
+                margin-left: -18rem; 
                 opacity: 0;
                 pointer-events: none;
             }
@@ -139,7 +139,7 @@
 
         /* Fullscreen overrides */
         #viewer-section:fullscreen {
-            background-color: #020617; /* Solid background when native fullscreen hides the animated blobs */
+            background-color: #020617; 
         }
 
         /* Markdown Body Styling */
@@ -155,6 +155,37 @@
         .markdown-body a:hover { color: #93c5fd; text-decoration: underline; }
         .markdown-body strong { font-weight: 600; color: #f8fafc; }
         .markdown-body img { max-width: 100%; border-radius: 8px; margin: 1em 0; border: 1px solid rgba(255,255,255,0.1); }
+
+        /* Light Theme Overrides */
+        .light-code-theme #code-container { background-color: #ffffff; color: #24292e; border-radius: 12px; margin: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
+        .light-code-theme #line-numbers { color: #1b1f244d; border-right: 1px solid #e1e4e8; background-color: #f6f8fa; border-top-left-radius: 12px; border-bottom-left-radius: 12px; }
+
+        /* Robust Print Styling */
+        @media print {
+            * { text-shadow: none !important; box-shadow: none !important; }
+            @page { margin: 1.5cm; }
+            body, html { background: #ffffff !important; color: #000000 !important; height: auto !important; min-height: auto !important; overflow: visible !important; display: block !important; }
+            .fixed, aside, header, #ai-panel, button, #sidebar-overlay, .glass-button, #line-numbers { display: none !important; }
+            main, section, #content-container, #code-container, pre, code { overflow: visible !important; height: auto !important; position: static !important; display: block !important; margin: 0 !important; border: none !important; }
+            #viewer-section { background: transparent !important; backdrop-filter: none !important; }
+            
+            #file-header { 
+                display: flex !important; 
+                background: transparent !important; 
+                color: #000 !important; 
+                border-bottom: 2px solid #000 !important; 
+                padding: 10px 0 !important; 
+                margin-bottom: 20px !important; 
+            }
+            #file-header * { color: #000 !important; }
+            
+            #code-display { white-space: pre-wrap !important; word-wrap: break-word !important; font-size: 10pt !important; color: #000 !important; }
+            
+            /* Flatten highlight.js colors for printing */
+            .hljs, .hljs *, #code-display * { color: #000 !important; font-weight: normal !important; background: transparent !important; }
+            .hljs-keyword, .hljs-built_in, .hljs-title { font-weight: bold !important; }
+            .hljs-string, .hljs-comment { color: #555 !important; font-style: italic !important; }
+        }
     </style>
 </head>
 <body class="h-screen flex flex-col relative text-slate-200">
@@ -169,7 +200,7 @@
     <!-- Liquid Glass Navbar -->
     <header class="glass-header flex flex-col md:flex-row items-center justify-between px-4 sm:px-6 py-3 sm:py-4 shrink-0 z-30 gap-3 md:gap-0 transition-all duration-500">
         <div class="flex items-center w-full md:w-auto gap-3">
-            <button id="menu-btn" class="p-2 -ml-2 glass-button rounded-xl text-slate-300" title="Toggle Explorer">
+            <button id="menu-btn" class="p-2 -ml-2 glass-button rounded-xl text-slate-300" title="Toggle Explorer (Cmd/Ctrl + B)">
                 <i data-lucide="menu" class="w-5 h-5"></i>
             </button>
             <div class="p-2 rounded-xl bg-blue-500/20 border border-blue-400/30 shadow-[0_0_15px_rgba(59,130,246,0.3)]">
@@ -212,6 +243,9 @@
             <button id="load-btn" class="glass-button bg-blue-600/40 hover:bg-blue-500/60 text-white font-medium rounded-2xl text-xs sm:text-sm px-4 sm:px-6 py-2 sm:py-3 border border-blue-400/40 shadow-[0_4px_20px_rgba(59,130,246,0.4)] flex items-center gap-1 sm:gap-2 shrink-0 group">
                 <i data-lucide="search" class="w-4 h-4 group-hover:rotate-12 transition-transform duration-300"></i> <span class="hidden sm:inline drop-shadow-sm">Load</span>
             </button>
+            <a id="repo-download-btn" href="#" target="_blank" class="hidden glass-button bg-purple-600/40 hover:bg-purple-500/60 text-white font-medium rounded-2xl text-xs sm:text-sm px-4 sm:px-5 py-2 sm:py-3 border border-purple-400/40 shadow-[0_4px_20px_rgba(168,85,247,0.4)] flex items-center gap-1 sm:gap-2 shrink-0 group" title="Download Full Repository (.zip)">
+                <i data-lucide="folder-down" class="w-4 h-4 group-hover:-translate-y-0.5 transition-transform duration-300"></i> <span class="hidden sm:inline drop-shadow-sm">ZIP</span>
+            </a>
             <button id="github-auth-btn" class="glass-button bg-slate-800/40 hover:bg-slate-700/60 text-slate-300 rounded-2xl p-2 sm:p-3 border border-white/10 flex items-center justify-center shrink-0 transition-colors" title="Set GitHub Token (Fix API Limits)">
                 <i data-lucide="key" class="w-4 h-4 sm:w-5 sm:h-5"></i>
             </button>
@@ -245,7 +279,7 @@
             <div class="px-3 py-3 border-b border-white/5 bg-white/5 shrink-0">
                 <div class="relative group">
                     <i data-lucide="filter" class="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-3.5 h-3.5 text-slate-400 group-focus-within:text-blue-400 transition-colors"></i>
-                    <input type="text" id="file-search" placeholder="Filter files..." class="w-full bg-black/20 border border-white/10 text-slate-200 text-xs rounded-lg pl-8 p-1.5 focus:ring-1 focus:ring-blue-500/50 outline-none transition-all placeholder-slate-500 shadow-inner">
+                    <input type="text" id="file-search" placeholder="Filter files... (Cmd + /)" class="w-full bg-black/20 border border-white/10 text-slate-200 text-xs rounded-lg pl-8 p-1.5 focus:ring-1 focus:ring-blue-500/50 outline-none transition-all placeholder-slate-500 shadow-inner">
                 </div>
             </div>
 
@@ -271,7 +305,7 @@
         </aside>
 
         <!-- Viewer Section -->
-        <section id="viewer-section" class="flex-1 relative flex flex-col min-w-0 bg-black/10 backdrop-blur-3xl">
+        <section id="viewer-section" class="flex-1 relative flex flex-col min-w-0 bg-black/10 backdrop-blur-3xl transition-colors duration-300">
             
             <!-- File Header -->
             <div id="file-header" class="h-14 border-b border-white/10 flex items-center px-4 sm:px-6 bg-slate-900/40 backdrop-blur-xl shrink-0 hidden z-10 shadow-sm transition-all duration-300 overflow-x-auto hide-scrollbar">
@@ -279,8 +313,13 @@
                     <div class="p-1.5 rounded-lg bg-white/10 border border-white/10 shrink-0">
                         <i id="file-header-icon" data-lucide="file" class="w-4 h-4 text-blue-300"></i>
                     </div>
-                    <div id="file-header-name" class="flex flex-wrap items-center truncate max-w-[200px] sm:max-w-md drop-shadow-sm whitespace-nowrap">
-                        <!-- Breadcrumbs injected here -->
+                    <div class="flex flex-wrap items-center truncate max-w-[200px] sm:max-w-md drop-shadow-sm whitespace-nowrap group">
+                        <span id="file-header-name" class="flex items-center">
+                            <!-- Breadcrumbs injected here -->
+                        </span>
+                        <button id="copy-path-btn" class="ml-2 text-slate-500 hover:text-white transition-colors opacity-0 group-hover:opacity-100 hidden sm:block" title="Copy File Path">
+                            <i data-lucide="clipboard-copy" class="w-3.5 h-3.5"></i>
+                        </button>
                     </div>
                 </div>
                 
@@ -297,7 +336,10 @@
 
                     <div class="w-px h-6 bg-white/10 mx-1 hidden sm:block"></div>
 
-                    <!-- Readability & Presentation Controls -->
+                    <!-- Readability & Theme Controls -->
+                    <button id="theme-btn" class="p-2 glass-button rounded-xl text-yellow-300" title="Toggle Light/Dark Code Theme">
+                        <i data-lucide="sun" class="w-4 h-4"></i>
+                    </button>
                     <button id="font-decrease-btn" class="p-2 glass-button rounded-xl text-slate-300 hidden sm:flex items-center justify-center w-8 h-8" title="Decrease Font Size">
                         <span class="font-bold text-xs">A-</span>
                     </button>
@@ -312,7 +354,10 @@
                     <div class="w-px h-6 bg-white/10 mx-1 hidden sm:block"></div>
 
                     <!-- Action Buttons -->
-                    <button id="bookmark-btn" class="p-2 glass-button rounded-xl text-slate-300" title="Bookmark File">
+                    <button id="print-btn" class="p-2 glass-button rounded-xl text-slate-300" title="Print to PDF (Assignments)">
+                        <i data-lucide="printer" class="w-4 h-4"></i>
+                    </button>
+                    <button id="bookmark-btn" class="p-2 glass-button rounded-xl text-slate-300" title="Bookmark File (Cmd + S)">
                         <i data-lucide="star" class="w-4 h-4"></i>
                     </button>
                     <button id="download-btn" class="p-2 glass-button rounded-xl text-slate-300" title="Download File">
@@ -353,7 +398,7 @@
                     </div>
 
                     <!-- Code Block (with Line Numbers Wrapper) -->
-                    <div id="code-container" class="hidden flex relative min-h-full w-full font-mono">
+                    <div id="code-container" class="hidden flex relative min-h-full w-full font-mono transition-colors duration-300">
                         <div id="line-numbers" class="shrink-0 text-right px-4 sm:px-5 py-4 sm:py-6 text-slate-500/70 border-r border-white/5 select-none bg-white/[0.02] text-[13px] leading-relaxed transition-all duration-200"></div>
                         <pre id="code-wrapper" class="m-0 p-4 sm:p-6 flex-1 overflow-x-auto"><code id="code-display" class="text-[13px] leading-relaxed tracking-wide block"></code></pre>
                     </div>
@@ -423,6 +468,7 @@
         const emptyState = document.getElementById('empty-state');
         const loadingState = document.getElementById('loading-state');
         const loadingText = document.getElementById('loading-text');
+        const repoDownloadBtn = document.getElementById('repo-download-btn');
         
         // Branch Controls
         const branchContainer = document.getElementById('branch-container');
@@ -449,12 +495,15 @@
         // Header Controls
         const fileHeader = document.getElementById('file-header');
         const fileHeaderName = document.getElementById('file-header-name');
+        const copyPathBtn = document.getElementById('copy-path-btn');
         const fileSize = document.getElementById('file-size');
         const downloadBtn = document.getElementById('download-btn');
         const fullscreenBtn = document.getElementById('fullscreen-btn');
+        const printBtn = document.getElementById('print-btn');
         const copyBtn = document.getElementById('copy-btn');
         const wrapBtn = document.getElementById('wrap-btn');
         const bookmarkBtn = document.getElementById('bookmark-btn');
+        const themeBtn = document.getElementById('theme-btn');
         const fontIncreaseBtn = document.getElementById('font-increase-btn');
         const fontDecreaseBtn = document.getElementById('font-decrease-btn');
         const rawLink = document.getElementById('raw-link');
@@ -474,6 +523,9 @@
         const menuBtn = document.getElementById('menu-btn');
         const closeSidebarBtn = document.getElementById('close-sidebar-btn');
 
+        // Theme Link
+        const hljsTheme = document.getElementById('hljs-theme');
+
         // State
         let currentRepo = '';
         let defaultBranch = 'main';
@@ -483,6 +535,7 @@
         let currentFilePath = '';
         let currentFlatTree = [];
         let currentFontSize = 13;
+        let isLightTheme = false;
 
         // File Icons Mapping
         const iconMap = {
@@ -498,6 +551,30 @@
             'mp3', 'mp4', 'avi', 'mkv', 'webm', 'mov', 'ttf', 'otf', 'woff', 'woff2', 
             'eot', 'db', 'sqlite', 'sqlite3', 'bin', 'iso', 'dmg', 'class', 'jar', 'pyc'
         ];
+
+        // Global Keyboard Shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+            // Cmd/Ctrl + B (Toggle Sidebar)
+            if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'b') {
+                e.preventDefault();
+                toggleSidebar();
+            }
+            // Cmd/Ctrl + / (Focus Search)
+            if ((e.metaKey || e.ctrlKey) && e.key === '/') {
+                e.preventDefault();
+                if(sidebar.classList.contains('desktop-collapsed')) toggleSidebar();
+                fileSearchInput.focus();
+            }
+            // Cmd/Ctrl + S (Bookmark)
+            if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
+                e.preventDefault();
+                if (!fileHeader.classList.contains('hidden')) {
+                    bookmarkBtn.click();
+                }
+            }
+        });
 
         // Init Recent Repos & Bookmarks
         function updateRecentRepos(repo) {
@@ -576,7 +653,6 @@
         window.loadBookmark = (path) => {
             const fileObj = currentFlatTree.find(f => f.path === path);
             if (fileObj) {
-                // Deselect active tree elements for visual correctness
                 document.querySelectorAll('.tree-item').forEach(el => el.classList.remove('active'));
                 loadFileContent(fileObj, null);
             }
@@ -585,7 +661,6 @@
         // UI Helpers
         const toggleSidebar = () => {
             if (window.innerWidth < 768) {
-                // Mobile Slide-in
                 const isClosed = sidebar.classList.contains('-translate-x-full');
                 if (isClosed) {
                     sidebar.classList.remove('-translate-x-full');
@@ -595,7 +670,6 @@
                     sidebarOverlay.classList.add('hidden');
                 }
             } else {
-                // Desktop Smooth Collapse
                 sidebar.classList.toggle('desktop-collapsed');
             }
         };
@@ -645,7 +719,6 @@
 
         branchTrigger.addEventListener('click', toggleBranchDropdown);
 
-        // Close dropdown when clicking outside
         document.addEventListener('click', (e) => {
             if (!branchContainer.contains(e.target)) {
                 closeBranchDropdown();
@@ -701,7 +774,6 @@
             lucide.createIcons();
             
             try {
-                // Fetch basic details
                 const repoRes = await fetch(`https://api.github.com/repos/${repoPath}`, { headers: getGithubHeaders() });
                 if (!repoRes.ok) {
                     if (repoRes.status === 403 || repoRes.status === 429) throw new Error("API Rate Limit Exceeded. Click the Key icon to add a token.");
@@ -714,9 +786,12 @@
                 updateRecentRepos(currentRepo);
                 renderBookmarks();
                 
+                // Show Repository Download Zip Button
+                repoDownloadBtn.href = `https://github.com/${currentRepo}/archive/refs/heads/${defaultBranch}.zip`;
+                repoDownloadBtn.classList.remove('hidden');
+
                 repoStats.innerHTML = `<span class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-yellow-500/10 text-yellow-200 border border-yellow-500/20"><i data-lucide="star" class="w-3.5 h-3.5"></i> ${repoData.stargazers_count}</span>`;
 
-                // Fetch Branches for Liquid Selector
                 const branchesRes = await fetch(`https://api.github.com/repos/${repoPath}/branches`, { headers: getGithubHeaders() });
                 if (branchesRes.ok) {
                     const branchesData = await branchesRes.json();
@@ -734,16 +809,18 @@
                     branchContainer.classList.remove('hidden');
                     lucide.createIcons();
 
-                    // Attach selection events
                     document.querySelectorAll('.branch-option').forEach(btn => {
                         btn.addEventListener('click', (e) => {
                             const selectedBranch = e.currentTarget.getAttribute('data-branch');
                             if(selectedBranch !== defaultBranch) {
                                 defaultBranch = selectedBranch;
                                 branchCurrent.textContent = defaultBranch;
+                                
+                                // Update repo zip download link for new branch
+                                repoDownloadBtn.href = `https://github.com/${currentRepo}/archive/refs/heads/${defaultBranch}.zip`;
+
                                 fetchTreeOnly(currentRepo, defaultBranch);
                                 
-                                // Update checkmarks
                                 document.querySelectorAll('.branch-option svg').forEach(svg => {
                                     if(svg.classList.contains('text-emerald-400')) {
                                         svg.remove();
@@ -752,7 +829,6 @@
                                 e.currentTarget.insertAdjacentHTML('beforeend', '<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400 shrink-0"></i>');
                                 lucide.createIcons();
 
-                                // Clear current viewer
                                 document.getElementById('empty-state').classList.remove('hidden');
                                 document.getElementById('code-container').classList.add('hidden');
                                 document.getElementById('markdown-wrapper').classList.add('hidden');
@@ -779,6 +855,7 @@
                 lucide.createIcons();
                 showError(err.message);
                 branchContainer.classList.add('hidden');
+                repoDownloadBtn.classList.add('hidden');
             }
         }
 
@@ -855,21 +932,24 @@
                         childrenContainer.appendChild(createNodeElement(child, depth + 1));
                         
                         itemDiv.onclick = (e) => {
-                            const chevron = itemDiv.querySelector('[data-lucide^="chevron"]');
+                            const chevron = itemDiv.querySelector('[data-lucide="chevron-right"]');
                             const isCollapsed = childrenContainer.classList.contains('collapsed');
                             
                             if (isCollapsed) {
                                 childrenContainer.classList.remove('collapsed');
-                                chevron.setAttribute('data-lucide', 'chevron-down');
-                                chevron.classList.remove('opacity-60');
-                                chevron.classList.add('opacity-100');
+                                if (chevron) {
+                                    chevron.classList.add('rotate-90');
+                                    chevron.classList.remove('opacity-60');
+                                    chevron.classList.add('opacity-100');
+                                }
                             } else {
                                 childrenContainer.classList.add('collapsed');
-                                chevron.setAttribute('data-lucide', 'chevron-right');
-                                chevron.classList.remove('opacity-100');
-                                chevron.classList.add('opacity-60');
+                                if (chevron) {
+                                    chevron.classList.remove('rotate-90');
+                                    chevron.classList.remove('opacity-100');
+                                    chevron.classList.add('opacity-60');
+                                }
                             }
-                            lucide.createIcons();
                         };
 
                         container.appendChild(itemDiv);
@@ -947,9 +1027,9 @@
                         parent.classList.remove('collapsed');
                         if (parent.previousElementSibling) {
                             parent.previousElementSibling.style.display = 'flex';
-                            const chev = parent.previousElementSibling.querySelector('[data-lucide^="chevron"]');
+                            const chev = parent.previousElementSibling.querySelector('[data-lucide="chevron-right"]');
                             if (chev) {
-                                chev.setAttribute('data-lucide', 'chevron-down');
+                                chev.classList.add('rotate-90');
                                 chev.classList.remove('opacity-60');
                                 chev.classList.add('opacity-100');
                             }
@@ -961,6 +1041,7 @@
             lucide.createIcons();
         });
 
+        // Theme and Display Controls
         function applyFontSize() {
             codeDisplay.style.fontSize = `${currentFontSize}px`;
             lineNumbers.style.fontSize = `${currentFontSize}px`;
@@ -978,6 +1059,21 @@
                 currentFontSize -= 2;
                 applyFontSize();
             }
+        });
+
+        themeBtn.addEventListener('click', () => {
+            isLightTheme = !isLightTheme;
+            
+            if (isLightTheme) {
+                hljsTheme.href = "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css";
+                themeBtn.innerHTML = '<i data-lucide="moon" class="w-4 h-4"></i>';
+                viewerSection.classList.add('light-code-theme');
+            } else {
+                hljsTheme.href = "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css";
+                themeBtn.innerHTML = '<i data-lucide="sun" class="w-4 h-4"></i>';
+                viewerSection.classList.remove('light-code-theme');
+            }
+            lucide.createIcons();
         });
 
         // Fetch and Display File Content
@@ -1033,6 +1129,8 @@
                     explainBtn.classList.add('hidden');
                     improveBtn.classList.add('hidden');
                     wrapBtn.classList.add('hidden');
+                    themeBtn.classList.add('hidden');
+                    printBtn.classList.add('hidden');
                     fontIncreaseBtn.classList.add('sm:hidden');
                     fontDecreaseBtn.classList.add('sm:hidden');
                     closeAIPanel();
@@ -1043,6 +1141,8 @@
                     explainBtn.classList.add('hidden');
                     improveBtn.classList.add('hidden');
                     wrapBtn.classList.add('hidden');
+                    themeBtn.classList.add('hidden');
+                    printBtn.classList.add('hidden');
                     fontIncreaseBtn.classList.add('sm:hidden');
                     fontDecreaseBtn.classList.add('sm:hidden');
                     closeAIPanel();
@@ -1060,6 +1160,8 @@
                     explainBtn.classList.add('hidden');
                     improveBtn.classList.add('hidden');
                     wrapBtn.classList.add('hidden');
+                    themeBtn.classList.add('hidden');
+                    printBtn.classList.add('hidden');
                     fontIncreaseBtn.classList.add('sm:hidden');
                     fontDecreaseBtn.classList.add('sm:hidden');
                     closeAIPanel();
@@ -1077,16 +1179,16 @@
                     explainBtn.classList.add('hidden');
                     improveBtn.classList.add('hidden');
                     wrapBtn.classList.add('hidden');
+                    themeBtn.classList.add('hidden');
+                    printBtn.classList.add('hidden');
                     fontIncreaseBtn.classList.add('sm:hidden');
                     fontDecreaseBtn.classList.add('sm:hidden');
                     closeAIPanel();
                 } else if (ext === 'md') {
-                    // Special Handling for Markdown Files natively
                     const res = await fetch(rawUrl);
                     if (!res.ok) throw new Error("Failed to fetch markdown content");
                     
                     const text = await res.text();
-                    // Setup code display context so the copy/AI buttons work
                     codeDisplay.textContent = text; 
                     
                     markdownWrapper.innerHTML = marked.parse(text);
@@ -1102,6 +1204,8 @@
                     improveBtn.classList.remove('hidden');
                     improveBtn.classList.add('flex');
                     wrapBtn.classList.add('hidden');
+                    themeBtn.classList.add('hidden');
+                    printBtn.classList.remove('hidden'); // Allow printing MD files
                     fontIncreaseBtn.classList.add('sm:hidden');
                     fontDecreaseBtn.classList.add('sm:hidden');
                     
@@ -1135,6 +1239,8 @@
                     improveBtn.classList.remove('hidden');
                     improveBtn.classList.add('flex');
                     wrapBtn.classList.remove('hidden');
+                    themeBtn.classList.remove('hidden');
+                    printBtn.classList.remove('hidden');
                     
                     // Restore original display class for font sizing on desktop
                     fontIncreaseBtn.classList.remove('sm:hidden');
@@ -1161,6 +1267,24 @@
             }
         }
 
+        // Feature Additions: Print to PDF
+        printBtn.addEventListener('click', () => {
+            window.print();
+        });
+
+        copyPathBtn.addEventListener('click', () => {
+            if (currentFilePath) {
+                navigator.clipboard.writeText(currentFilePath).then(() => {
+                    const originalIcon = copyPathBtn.innerHTML;
+                    copyPathBtn.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i>';
+                    lucide.createIcons();
+                    setTimeout(() => {
+                        copyPathBtn.innerHTML = originalIcon;
+                    }, 2000);
+                });
+            }
+        });
+
         // Feature Additions: Toggle Word Wrap
         wrapBtn.addEventListener('click', () => {
             codeDisplay.classList.toggle('whitespace-pre-wrap');
@@ -1168,8 +1292,10 @@
             
             if (codeDisplay.classList.contains('whitespace-pre-wrap')) {
                 wrapBtn.classList.add('bg-white/10');
+                lineNumbers.classList.add('hidden'); // Hide line numbers when wrapping to prevent misalignment
             } else {
                 wrapBtn.classList.remove('bg-white/10');
+                lineNumbers.classList.remove('hidden');
             }
         });
 
