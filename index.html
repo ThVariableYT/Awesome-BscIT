@@ -81,6 +81,10 @@
         ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.3); }
 
+        /* Hide Scrollbar utility */
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
         /* Tree Styles with Smooth Animations */
         .tree-item { 
             cursor: pointer; 
@@ -176,23 +180,40 @@
             </h1>
         </div>
         
-        <div class="flex items-center gap-2 w-full md:flex-1 max-w-xl md:ml-8">
+        <div class="flex items-center gap-2 w-full md:flex-1 max-w-xl md:ml-8 z-40">
             <div class="relative w-full group flex items-center gap-2">
                 <div class="relative w-full">
                     <i data-lucide="github" class="absolute left-3.5 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-slate-400 group-focus-within:text-blue-400 transition-colors duration-300 z-10"></i>
-                    <input type="text" id="repo-input" list="recent-repos" value="ThVariableYT/Awesome-BscIT" 
+                    <input type="text" id="repo-input" list="recent-repos" value="ThVariableYT/Web-Programming-Practicals" 
                         class="w-full bg-black/20 backdrop-blur-md border border-white/10 text-white text-xs sm:text-sm rounded-2xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 block pl-10 sm:pl-11 p-2 sm:p-3 transition-all duration-300 shadow-inner placeholder-slate-500 outline-none" 
                         placeholder="owner/repository">
                     <datalist id="recent-repos"></datalist>
                 </div>
                 
-                <!-- Branch Switcher -->
-                <select id="branch-select" class="glass-button bg-slate-900/60 text-white text-xs sm:text-sm rounded-2xl px-2 py-2 sm:py-3 outline-none hidden cursor-pointer border border-white/10 shadow-inner max-w-[120px] shrink-0" title="Select Branch">
-                </select>
+                <!-- Liquid Branch Switcher -->
+                <div id="branch-container" class="relative hidden shrink-0">
+                    <button id="branch-trigger" class="glass-button bg-slate-900/60 text-white text-xs sm:text-sm rounded-2xl px-3 py-2 sm:py-3 outline-none cursor-pointer border border-white/10 shadow-inner max-w-[140px] flex items-center gap-2 transition-all" title="Select Branch">
+                        <i data-lucide="git-branch" class="w-3.5 h-3.5 text-blue-400 shrink-0"></i>
+                        <span id="branch-current" class="truncate font-medium">main</span>
+                        <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform duration-300" id="branch-chevron"></i>
+                    </button>
+                    
+                    <div id="branch-dropdown" class="absolute top-full right-0 mt-2 w-56 glass-panel rounded-2xl border border-white/10 shadow-[0_10px_40px_rgba(0,0,0,0.5)] opacity-0 invisible transform scale-95 origin-top-right transition-all duration-200 overflow-hidden z-50">
+                        <div class="px-3 py-2.5 border-b border-white/10 bg-white/5 flex items-center justify-between">
+                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Branches</span>
+                        </div>
+                        <ul id="branch-list" class="max-h-64 overflow-y-auto hide-scrollbar py-1">
+                            <!-- Branches injected here -->
+                        </ul>
+                    </div>
+                </div>
             </div>
             
             <button id="load-btn" class="glass-button bg-blue-600/40 hover:bg-blue-500/60 text-white font-medium rounded-2xl text-xs sm:text-sm px-4 sm:px-6 py-2 sm:py-3 border border-blue-400/40 shadow-[0_4px_20px_rgba(59,130,246,0.4)] flex items-center gap-1 sm:gap-2 shrink-0 group">
                 <i data-lucide="search" class="w-4 h-4 group-hover:rotate-12 transition-transform duration-300"></i> <span class="hidden sm:inline drop-shadow-sm">Load</span>
+            </button>
+            <button id="github-auth-btn" class="glass-button bg-slate-800/40 hover:bg-slate-700/60 text-slate-300 rounded-2xl p-2 sm:p-3 border border-white/10 flex items-center justify-center shrink-0 transition-colors" title="Set GitHub Token (Fix API Limits)">
+                <i data-lucide="key" class="w-4 h-4 sm:w-5 sm:h-5"></i>
             </button>
         </div>
         
@@ -402,8 +423,17 @@
         const emptyState = document.getElementById('empty-state');
         const loadingState = document.getElementById('loading-state');
         const loadingText = document.getElementById('loading-text');
-        const branchSelect = document.getElementById('branch-select');
+        
+        // Branch Controls
+        const branchContainer = document.getElementById('branch-container');
+        const branchTrigger = document.getElementById('branch-trigger');
+        const branchCurrent = document.getElementById('branch-current');
+        const branchDropdown = document.getElementById('branch-dropdown');
+        const branchList = document.getElementById('branch-list');
+        const branchChevron = document.getElementById('branch-chevron');
+        
         const recentReposList = document.getElementById('recent-repos');
+        const githubAuthBtn = document.getElementById('github-auth-btn');
         
         // Viewer Elements
         const viewerSection = document.getElementById('viewer-section');
@@ -595,6 +625,60 @@
             return iconMap[ext] || 'file';
         };
 
+        // Custom Dropdown UI Logic
+        const toggleBranchDropdown = () => {
+            const isExpanded = branchDropdown.classList.contains('opacity-100');
+            if (isExpanded) {
+                closeBranchDropdown();
+            } else {
+                branchDropdown.classList.remove('opacity-0', 'invisible', 'scale-95');
+                branchDropdown.classList.add('opacity-100', 'visible', 'scale-100');
+                branchChevron.classList.add('rotate-180');
+            }
+        };
+
+        const closeBranchDropdown = () => {
+            branchDropdown.classList.add('opacity-0', 'invisible', 'scale-95');
+            branchDropdown.classList.remove('opacity-100', 'visible', 'scale-100');
+            branchChevron.classList.remove('rotate-180');
+        };
+
+        branchTrigger.addEventListener('click', toggleBranchDropdown);
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!branchContainer.contains(e.target)) {
+                closeBranchDropdown();
+            }
+        });
+
+        // GitHub API Token Logic
+        function getGithubHeaders() {
+            const token = localStorage.getItem('github_token');
+            return token ? { 'Authorization': `token ${token}` } : {};
+        }
+
+        githubAuthBtn.addEventListener('click', () => {
+            const currentToken = localStorage.getItem('github_token') || '';
+            const token = prompt("To bypass GitHub's 60 requests/hr limit, enter a GitHub Personal Access Token:\n(Leave blank to remove current token)", currentToken);
+            if (token !== null) {
+                if (token.trim() === '') {
+                    localStorage.removeItem('github_token');
+                    githubAuthBtn.classList.remove('text-yellow-400');
+                    githubAuthBtn.classList.add('text-slate-300');
+                } else {
+                    localStorage.setItem('github_token', token.trim());
+                    githubAuthBtn.classList.remove('text-slate-300');
+                    githubAuthBtn.classList.add('text-yellow-400');
+                }
+            }
+        });
+
+        if (localStorage.getItem('github_token')) {
+            githubAuthBtn.classList.remove('text-slate-300');
+            githubAuthBtn.classList.add('text-yellow-400');
+        }
+
         // GitHub API Fetcher
         async function fetchRepo() {
             const repoPath = repoInput.value.trim().replace(/^https?:\/\/github\.com\//, '');
@@ -618,8 +702,11 @@
             
             try {
                 // Fetch basic details
-                const repoRes = await fetch(`https://api.github.com/repos/${repoPath}`);
-                if (!repoRes.ok) throw new Error(repoRes.status === 404 ? "Repository not found" : "API Limit Exceeded");
+                const repoRes = await fetch(`https://api.github.com/repos/${repoPath}`, { headers: getGithubHeaders() });
+                if (!repoRes.ok) {
+                    if (repoRes.status === 403 || repoRes.status === 429) throw new Error("API Rate Limit Exceeded. Click the Key icon to add a token.");
+                    throw new Error("Repository not found or accessible.");
+                }
                 const repoData = await repoRes.json();
                 
                 defaultBranch = repoData.default_branch;
@@ -629,12 +716,54 @@
                 
                 repoStats.innerHTML = `<span class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-yellow-500/10 text-yellow-200 border border-yellow-500/20"><i data-lucide="star" class="w-3.5 h-3.5"></i> ${repoData.stargazers_count}</span>`;
 
-                // Fetch Branches for selector
-                const branchesRes = await fetch(`https://api.github.com/repos/${repoPath}/branches`);
+                // Fetch Branches for Liquid Selector
+                const branchesRes = await fetch(`https://api.github.com/repos/${repoPath}/branches`, { headers: getGithubHeaders() });
                 if (branchesRes.ok) {
                     const branchesData = await branchesRes.json();
-                    branchSelect.innerHTML = branchesData.map(b => `<option value="${b.name}" ${b.name === defaultBranch ? 'selected' : ''}>${b.name}</option>`).join('');
-                    branchSelect.classList.remove('hidden');
+                    
+                    branchList.innerHTML = branchesData.map(b => `
+                        <li>
+                            <button class="w-full text-left px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-white/10 transition-colors flex items-center justify-between group branch-option" data-branch="${b.name}">
+                                <span class="truncate pr-2">${b.name}</span>
+                                ${b.name === defaultBranch ? '<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400 shrink-0"></i>' : ''}
+                            </button>
+                        </li>
+                    `).join('');
+                    
+                    branchCurrent.textContent = defaultBranch;
+                    branchContainer.classList.remove('hidden');
+                    lucide.createIcons();
+
+                    // Attach selection events
+                    document.querySelectorAll('.branch-option').forEach(btn => {
+                        btn.addEventListener('click', (e) => {
+                            const selectedBranch = e.currentTarget.getAttribute('data-branch');
+                            if(selectedBranch !== defaultBranch) {
+                                defaultBranch = selectedBranch;
+                                branchCurrent.textContent = defaultBranch;
+                                fetchTreeOnly(currentRepo, defaultBranch);
+                                
+                                // Update checkmarks
+                                document.querySelectorAll('.branch-option svg').forEach(svg => {
+                                    if(svg.classList.contains('text-emerald-400')) {
+                                        svg.remove();
+                                    }
+                                });
+                                e.currentTarget.insertAdjacentHTML('beforeend', '<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400 shrink-0"></i>');
+                                lucide.createIcons();
+
+                                // Clear current viewer
+                                document.getElementById('empty-state').classList.remove('hidden');
+                                document.getElementById('code-container').classList.add('hidden');
+                                document.getElementById('markdown-wrapper').classList.add('hidden');
+                                document.getElementById('image-wrapper').classList.add('hidden');
+                                document.getElementById('doc-wrapper').classList.add('hidden');
+                                document.getElementById('file-header').classList.add('hidden');
+                                closeAIPanel();
+                            }
+                            closeBranchDropdown();
+                        });
+                    });
                 }
 
                 await fetchTreeOnly(currentRepo, defaultBranch);
@@ -649,7 +778,7 @@
                     </div>`;
                 lucide.createIcons();
                 showError(err.message);
-                branchSelect.classList.add('hidden');
+                branchContainer.classList.add('hidden');
             }
         }
 
@@ -664,8 +793,11 @@
             lucide.createIcons();
             
             try {
-                const treeRes = await fetch(`https://api.github.com/repos/${repoPath}/git/trees/${branch}?recursive=1`);
-                if (!treeRes.ok) throw new Error("Could not fetch file tree");
+                const treeRes = await fetch(`https://api.github.com/repos/${repoPath}/git/trees/${branch}?recursive=1`, { headers: getGithubHeaders() });
+                if (!treeRes.ok) {
+                    if (treeRes.status === 403 || treeRes.status === 429) throw new Error("API Rate Limit Exceeded. Click the Key icon to add a token.");
+                    throw new Error("Could not fetch file tree");
+                }
                 const treeData = await treeRes.json();
                 currentFlatTree = treeData.tree;
                 renderTreeUI(currentFlatTree);
@@ -673,21 +805,6 @@
                 treeContainer.innerHTML = `<p class="text-center p-4 text-red-400">${err.message}</p>`;
             }
         }
-
-        // Branch Selection Event
-        branchSelect.addEventListener('change', (e) => {
-            defaultBranch = e.target.value;
-            fetchTreeOnly(currentRepo, defaultBranch);
-            
-            // Clear current viewer if branch is changed
-            document.getElementById('empty-state').classList.remove('hidden');
-            document.getElementById('code-container').classList.add('hidden');
-            document.getElementById('markdown-wrapper').classList.add('hidden');
-            document.getElementById('image-wrapper').classList.add('hidden');
-            document.getElementById('doc-wrapper').classList.add('hidden');
-            document.getElementById('file-header').classList.add('hidden');
-            closeAIPanel();
-        });
 
         // Tree Builder & Renderer
         function renderTreeUI(flatTree) {
