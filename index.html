@@ -184,7 +184,7 @@
             <div class="relative w-full group flex items-center gap-2">
                 <div class="relative w-full">
                     <i data-lucide="github" class="absolute left-3.5 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-slate-400 group-focus-within:text-blue-400 transition-colors duration-300 z-10"></i>
-                    <input type="text" id="repo-input" list="recent-repos" value="ThVariableYT/Awesome-BscIT" 
+                    <input type="text" id="repo-input" list="recent-repos" value="ThVariableYT/Web-Programming-Practicals" 
                         class="w-full bg-black/20 backdrop-blur-md border border-white/10 text-white text-xs sm:text-sm rounded-2xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 block pl-10 sm:pl-11 p-2 sm:p-3 transition-all duration-300 shadow-inner placeholder-slate-500 outline-none" 
                         placeholder="owner/repository">
                     <datalist id="recent-repos"></datalist>
@@ -886,6 +886,7 @@
                         
                         itemDiv.className = 'tree-item flex items-center py-2 sm:py-1.5 px-2 rounded-xl text-slate-400 hover:text-slate-200 mb-0.5';
                         itemDiv.style.paddingLeft = `${paddingLeft + 22}px`;
+                        itemDiv.setAttribute('data-path', child.path.toLowerCase());
                         itemDiv.innerHTML = `
                             <i data-lucide="${iconName}" class="w-4 h-4 mr-2.5 shrink-0 ${iconColor} drop-shadow-sm"></i>
                             <span class="truncate tracking-wide file-name-label">${child.name}</span>
@@ -903,16 +904,21 @@
             treeContainer.appendChild(createNodeElement(root));
             lucide.createIcons();
 
-            // Auto-load README.md if it exists
-            const allItems = treeContainer.querySelectorAll('.tree-item');
-            let foundReadme = false;
-            allItems.forEach(item => {
-                const label = item.querySelector('.file-name-label');
-                if (label && label.textContent.toLowerCase() === 'readme.md' && !foundReadme) {
-                    foundReadme = true;
-                    setTimeout(() => item.click(), 100); 
-                }
-            });
+            // Auto-load root README.md if it exists, otherwise fallback to any README
+            const rootReadme = treeContainer.querySelector('[data-path="readme.md"]');
+            if (rootReadme) {
+                setTimeout(() => rootReadme.click(), 100); 
+            } else {
+                const allItems = treeContainer.querySelectorAll('.tree-item');
+                let foundReadme = false;
+                allItems.forEach(item => {
+                    const label = item.querySelector('.file-name-label');
+                    if (label && label.textContent.toLowerCase() === 'readme.md' && !foundReadme) {
+                        foundReadme = true;
+                        setTimeout(() => item.click(), 100); 
+                    }
+                });
+            }
         }
 
         // File Filter/Search Logic
